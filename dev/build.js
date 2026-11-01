@@ -29,11 +29,12 @@ const C = new Function(m[1] + '\nreturn {deriveKey, keyVer, encPayload, decPaylo
 const IT = 100000;
 const sA = C.bytesToHex(C.randBytes(16));
 const sU = C.bytesToHex(C.randBytes(16));
+const sW = C.bytesToHex(C.randBytes(16)); // 写入凭证盐（v0.4.0+）
 const Ka = C.deriveKey(adminPwd, sA, IT);
 const Ku = C.deriveKey(userPwd, sU, IT);
 const payload = JSON.stringify({ v: 1, unifiedPwd: userPwd, users: [], savedAt: new Date().toISOString() });
 const appData = {
-  fmt: 'H1', it: IT, sA: sA, sU: sU,
+  fmt: 'H1', it: IT, sA: sA, sU: sU, sW: sW,
   aV: C.keyVer(Ka), uV: C.keyVer(Ku),
   e1: C.encPayload(Ku, payload),
   e2: C.encPayload(Ka, payload)

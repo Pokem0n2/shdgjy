@@ -140,6 +140,7 @@ th.op,td.op{text-align:right;white-space:nowrap}
         <button id="btn-logout-a" class="btn subtle sm">退出登录</button>
       </div>
     </div>
+    <div id="sync-note" class="muted hidden" style="margin:-6px 0 10px"></div>
     <div class="toolbar">
       <input id="search-box" type="search" placeholder="搜索用户名 / 姓名 / 车牌号">
       <button id="btn-add" class="btn">添加用户</button>
@@ -499,6 +500,40 @@ var lastExport=null;
 
 function $(id){ return document.getElementById(id); }
 
+// ---------- 服务器连接（shdgjy-api.php）----------
+// online  = 接口可用，数据以服务器为准，保存直接写服务器
+// empty   = 接口可用但服务器尚无数据（首次保存即初始化）
+// offline = 接口不可用（file:// 打开或未部署 PHP），保存退回生成文件模式
+var conn={mode:'offline', ready:false};
+var connReady=null;
+function initConn(){
+  connReady=(function(){
+    var sig, timer;
+    if(typeof AbortController!=='undefined'){ var c=new AbortController(); sig=c.signal; timer=setTimeout(function(){c.abort();}, 8000); }
+    return fetch('shdgjy-api.php', {cache:'no-store', signal:sig})
+      .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+      .then(function(j){
+        if(j&&j.ok&&j.data&&j.data.fmt==='H1'){ auth=j.data; conn.mode='online'; }
+        else if(j&&j.ok===false&&j.code==='nodata'){ conn.mode='empty'; }
+        else throw new Error('badpayload');
+      })
+      .catch(function(){ conn.mode='offline'; })
+      .then(function(){ conn.ready=true; refreshAfterSync(); });
+  })();
+}
+function whenConnReady(fn){ if(conn.ready) fn(); else (connReady||Promise.resolve()).then(fn); }
+function refreshAfterSync(){
+  // 管理员会话建立在旧数据上时，重载以最新数据为准（窗口极小）
+  if(session&&session.role==='admin'&&conn.mode==='online'){ location.reload(); return; }
+  if(session&&session.role==='admin') updateSyncUi();
+}
+function updateSyncUi(){
+  var note=$('sync-note'), btn=$('btn-save');
+  if(conn.mode==='online'){ note.classList.add('hidden'); note.textContent=''; btn.textContent='保 存'; }
+  else if(conn.mode==='empty'){ note.classList.remove('hidden'); note.textContent='服务器暂无数据，首次保存后即完成初始化'; btn.textContent='保 存'; }
+  else{ note.classList.remove('hidden'); note.textContent='离线模式：保存将生成页面文件，需手动上传覆盖'; btn.textContent='保存并生成文件'; }
+}
+
 // ---------- 视图切换 ----------
 function showView(name){
   ['login','user','admin'].forEach(function(v){
@@ -567,13 +602,15 @@ function enterAdmin(payload, adminPwd){
     users: payload.users.map(function(x){ return {u:x.u, n:x.n, p:x.p}; }),
     unifiedPwd: payload.unifiedPwd,
     adminPwd: adminPwd,
-    sA: auth.sA, sU: auth.sU,
+    sA: auth.sA, sU: auth.sU, sW: auth.sW||'',
+    oldWk: null,
     dirty: false,
     savedAt: payload.savedAt||''
   };
   $('data-time').textContent='数据更新时间 '+fmtTime(state.savedAt);
   $('search-box').value='';
   updateSaveBar();
+  updateSyncUi();
   renderTable();
   showView('admin');
   resetIdle();
@@ -774,37 +811,61 @@ function applySettings(){
     state.sU=bytesToHex(randBytes(16)); // 换盐，旧密钥作废
   }
   if(np){
+    // 凭证切换需要旧凭证作过渡：覆盖前先派生存下（保存成功后清除）
+    state.oldWk=keyVer(deriveKey(state.adminPwd, state.sW, IT));
     state.adminPwd=np;
     state.sA=bytesToHex(randBytes(16));
+    state.sW=bytesToHex(randBytes(16)); // 写入凭证随之轮换，旧凭证作废
   }
   markDirty();
   closeModal('modal-settings');
   toast('设置已更新');
 }
 
-// ---------- 保存：生成新的完整页面 ----------
-function generateFileNow(){
-  var savedAt=new Date().toISOString();
+// ---------- 保存：服务器在线直接写入；离线退回生成完整页面 ----------
+function buildAppData(savedAt){
   var payloadJson=JSON.stringify({v:1, unifiedPwd:state.unifiedPwd, users:state.users, savedAt:savedAt});
   var Ku=deriveKey(state.unifiedPwd, state.sU, IT);
   var Ka=deriveKey(state.adminPwd, state.sA, IT);
-  var appDataObj={
+  return {
     fmt:'H1', it:IT,
-    sA:state.sA, sU:state.sU,
+    sA:state.sA, sU:state.sU, sW:state.sW,
     aV:keyVer(Ka), uV:keyVer(Ku),
     e1:encPayload(Ku, payloadJson),
     e2:encPayload(Ka, payloadJson)
   };
-  var html=serializePage(appDataObj);
-  // 同步当前页面状态（刷新前内存一致；线上生效仍需覆盖上传）
-  $('app-data').textContent=JSON.stringify(appDataObj);
+}
+function applySaved(appDataObj, savedAt){
   auth=appDataObj;
   state.dirty=false;
   state.savedAt=savedAt;
   updateSaveBar();
   $('data-time').textContent='数据更新时间 '+fmtTime(savedAt);
+}
+function generateFileNow(){
+  var savedAt=new Date().toISOString();
+  var appDataObj=buildAppData(savedAt);
+  var html=serializePage(appDataObj);
+  // 同步当前页面内嵌快照（file:// 兜底可见；服务器在线时以服务器为准）
+  $('app-data').textContent=JSON.stringify(appDataObj);
+  applySaved(appDataObj, savedAt);
   lastExport={filename:'shdgjy.html', html:html, savedAt:savedAt};
   return lastExport;
+}
+function postSave(appDataObj, done){
+  // 写入凭证：改密过渡期用旧凭证验证并附带新凭证切换；平时用当前凭证
+  var cur=keyVer(deriveKey(state.adminPwd, state.sW, IT));
+  var wk=state.oldWk||cur;
+  var body={wk:wk, d:appDataObj};
+  if(state.oldWk) body.nw=cur;
+  fetch('shdgjy-api.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  }).then(function(r){ return r.json().catch(function(){ throw new Error('badresp'); }).then(function(j){
+    if(r.ok&&j&&j.ok){ state.oldWk=null; done(true); }
+    else done(false, (j&&j.code)||('http'+r.status));
+  }); }).catch(function(){ done(false, 'network'); });
 }
 // 克隆当前文档 → 注入新数据 → 还原为初始干净状态 → 序列化整页
 function serializePage(appDataObj){
@@ -813,9 +874,10 @@ function serializePage(appDataObj){
   root.querySelector('#view-login').classList.remove('hidden');
   root.querySelector('#view-user').classList.add('hidden');
   root.querySelector('#view-admin').classList.add('hidden');
-  ['#login-err','#u-name','#u-plate','#data-time','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
+  ['#login-err','#u-name','#u-plate','#data-time','#sync-note','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
     var n=root.querySelector(s); if(n) n.textContent='';
   });
+  var sn=root.querySelector('#sync-note'); if(sn) sn.classList.add('hidden');
   var tb=root.querySelector('#tbody'); if(tb) tb.textContent='';
   var et=root.querySelector('#empty-tip'); if(et) et.classList.add('hidden');
   var sb=root.querySelector('#save-bar'); if(sb) sb.classList.remove('show');
@@ -824,6 +886,35 @@ function serializePage(appDataObj){
   root.querySelectorAll('.modal.open').forEach(function(m){ m.classList.remove('open'); });
   root.querySelectorAll('input,textarea').forEach(function(n){ n.removeAttribute('value'); });
   return '<!DOCTYPE html>\n'+root.outerHTML;
+}
+
+// 保存主流程：在线 POST 到服务器；离线生成完整页面文件
+function doSave(btn){
+  var restore=function(){ btn.disabled=false; btn.textContent=(conn.mode==='offline')?'保存并生成文件':'保 存'; };
+  try{
+    if(conn.mode==='offline'){
+      var res=generateFileNow();
+      $('exp-info').textContent='数据更新时间：'+fmtTime(res.savedAt);
+      openModal('modal-export');
+      restore();
+    }else{
+      var savedAt=new Date().toISOString();
+      var appDataObj=buildAppData(savedAt);
+      postSave(appDataObj, function(succ, errCode){
+        if(succ){
+          applySaved(appDataObj, savedAt);
+          toast('已保存到服务器');
+        }else{
+          var msg={denied:'凭证被拒（数据已他人更新？）刷新后重试', network:'网络错误', toobig:'数据超限', writefail:'服务器写入失败'}[errCode]||('错误 '+errCode);
+          toast('保存失败：'+msg);
+        }
+        restore();
+      });
+    }
+  }catch(e){
+    toast('保存失败：'+e.message);
+    restore();
+  }
 }
 
 // ---------- 事件绑定与启动 ----------
@@ -846,6 +937,7 @@ function boot(){
     $('login-err').textContent='数据文件损坏，请重新上传 shdgjy.html';
     return;
   }
+  initConn(); // 拉取服务器最新数据（失败则离线模式，用内嵌快照）
   $('login-form').addEventListener('submit', function(e){ e.preventDefault(); doLogin(); });
   // 用户名 × 一键清空（输入框内右侧）
   $('li-user').addEventListener('input', function(){
@@ -884,16 +976,9 @@ function boot(){
   $('btn-set-ok').addEventListener('click', applySettings);
   $('btn-save').addEventListener('click', function(){
     var btn=$('btn-save');
-    btn.disabled=true; btn.textContent='生成中…';
+    btn.disabled=true; btn.textContent='保存中…';
     setTimeout(function(){
-      try{
-        var res=generateFileNow();
-        $('exp-info').textContent='数据更新时间：'+fmtTime(res.savedAt);
-        openModal('modal-export');
-      }catch(e){
-        toast('生成失败：'+e.message);
-      }
-      btn.disabled=false; btn.textContent='保存并生成文件';
+      whenConnReady(function(){ doSave(btn); });
     }, 30);
   });
   $('btn-download').addEventListener('click', function(){
@@ -928,6 +1013,7 @@ boot();
 /* 自动化测试钩子（只暴露只读状态与核心函数，不绕过登录验证） */
 window.__t={
   version: APP_VERSION,
+  conn: function(){ return {mode:conn.mode, ready:conn.ready}; },
   parseImport: parseImport,
   buildCsv: buildCsv,
   state: function(){ return (session&&session.role==='admin') ? {count:state.users.length, dirty:state.dirty, savedAt:state.savedAt} : null; },

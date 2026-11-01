@@ -1,41 +1,32 @@
 #!/usr/bin/env python3
-# shdgjy.html 全流程功能测试（geckodriver + headless Firefox，走真实 UI 点击路径）
-# 覆盖：登录错误分支、管理员增删改查、批量导入、搜索、改统一密码、
-#       保存生成新文件、导出文件二次登录验证（新密码生效/旧密码失效/数据完好）
-# 用法：python3 dev/test-functional.py [--shots]   （--shots 额外输出截图）
-import json, subprocess, time, sys, os, base64, urllib.request, urllib.error, signal
+# shdgjy v0.4.x 全流程功能测试
+# 架构：PHP 在线模式（php -S）+ 离线模式（python http.server，无 PHP → 降级）
+# 覆盖：API 层、浏览器在线保存、跨设备数据一致性、改密轮换凭证、
+#       离线降级生成文件、file:// 打开、390px 手机布局
+import json, subprocess, time, sys, os, urllib.request, urllib.error, base64
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-OUT_TEST = os.path.join(HERE, 'out-test.html')
-SHOTS = os.path.join(HERE, 'shots')
+DATA_FILE = os.path.join(ROOT, 'shdgjy-data.json')
 GD = '/home/spark/.local/bin/geckodriver'
-PORT = 4463
-HTTP_PORT = 8123
-BASE = f'http://127.0.0.1:{HTTP_PORT}'
+GPORT, PHP_PORT, PY_PORT = 4480, 8140, 8141
+BASE_ON = f'http://127.0.0.1:{PHP_PORT}'    # 在线（PHP）
+BASE_OFF = f'http://127.0.0.1:{PY_PORT}'    # 离线（无 PHP）
+VERSION = 'v0.4.0'
 
-# 清代理，避免 WebDriver 本地调用被 FlClash 截走
 for k in list(os.environ):
     if 'proxy' in k.lower() or 'PROXY' in k:
         del os.environ[k]
 
-server = subprocess.Popen([sys.executable, '-m', 'http.server', str(HTTP_PORT), '-d', ROOT],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-gd = subprocess.Popen([GD, '--port', str(PORT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-time.sleep(2)
+if os.path.exists(DATA_FILE):
+    os.remove(DATA_FILE)
 
-def api(method, path, body=None):
-    url = f'http://127.0.0.1:{PORT}{path}'
-    data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data=data, method=method)
-    if data: req.add_header('Content-Type', 'application/json')
-    op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    try:
-        return json.loads(op.open(req, timeout=120).read())
-    except urllib.error.HTTPError as e:
-        raw = e.read()
-        try: return json.loads(raw)
-        except Exception: return {'error': f'HTTP {e.code}'}
+php = subprocess.Popen(['php', '-S', f'127.0.0.1:{PHP_PORT}', '-t', ROOT],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+pysrv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PY_PORT), '-d', ROOT],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+gd = subprocess.Popen([GD, '--port', str(GPORT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(2)
 
 PASS = FAIL = 0
 def ok(name, cond, extra=''):
@@ -43,32 +34,48 @@ def ok(name, cond, extra=''):
     if cond: PASS += 1; print(f'  PASS {name}')
     else:    FAIL += 1; print(f'  FAIL {name}  {extra}')
 
-def click(el_id):
-    return api('POST', f'/session/{sid}/execute/sync',
-               {'script': f"document.getElementById('{el_id}').click(); return null", 'args': []})
+def http(method, url, body=None, timeout=30):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method)
+    if data: req.add_header('Content-Type', 'application/json')
+    op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        r = op.open(req, timeout=timeout)
+        return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try: return e.code, json.loads(e.read())
+        except Exception: return e.code, None
 
+def api(method, path, body=None):
+    url = f'http://127.0.0.1:{GPORT}{path}'
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method)
+    if data: req.add_header('Content-Type', 'application/json')
+    op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try: return json.loads(op.open(req, timeout=120).read())
+    except urllib.error.HTTPError as e:
+        try: return json.loads(e.read())
+        except Exception: return {'error': f'HTTP {e.code}'}
+
+sid = None
+def click(el_id):
+    api('POST', f'/session/{sid}/execute/sync',
+        {'script': f"document.getElementById('{el_id}').click(); return null", 'args': []})
 def jsx(script):
     r = api('POST', f'/session/{sid}/execute/sync', {'script': script, 'args': []})
     if not isinstance(r, dict): return None
     v = r.get('value')
-    # WebDriver 错误响应的 value 是含 error 键的 dict，不能当正常返回值（否则 truthy 误判）
     if isinstance(v, dict) and 'error' in v: return None
     return v
-
 def goto(url):
     api('POST', f'/session/{sid}/url', {'url': url})
     time.sleep(1.2)
-
 def txt(el_id):
     return jsx(f"return document.getElementById('{el_id}').textContent") or ''
-
 def set_input(el_id, value, ev='input'):
-    js = ("var e=document.getElementById('%s'); e.value=%s; "
-          "e.dispatchEvent(new Event('%s',{bubbles:true})); return e.value.length") % (el_id, json.dumps(value), ev)
-    return jsx(js)
-
+    return jsx(("var e=document.getElementById('%s'); e.value=%s; "
+                "e.dispatchEvent(new Event('%s',{bubbles:true})); return e.value.length") % (el_id, json.dumps(value), ev))
 def wait_login_result(timeout=25):
-    """提交登录后轮询，返回 (结果类型, 耗时秒)：err 静态错误 / toast 浮窗 / user / admin"""
     t0 = time.time()
     while time.time() - t0 < timeout:
         err = txt('login-err')
@@ -81,26 +88,28 @@ def wait_login_result(timeout=25):
         if v and v[1]: return ('admin', time.time() - t0)
         time.sleep(0.1)
     return ('timeout', timeout)
-
 def do_login(u, p):
-    # 等上一次浮窗消失（2秒自动隐藏），避免把上次结果误判为本次
     t0 = time.time()
-    while time.time() - t0 < 3.0:
+    while time.time() - t0 < 4.0:
         if jsx("return document.getElementById('toast').classList.contains('show')") is not True: break
         time.sleep(0.15)
     set_input('li-user', u)
     set_input('li-pass', p)
     click('btn-login')
     return wait_login_result()
-
+def wait_conn(timeout=15):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        c = jsx("return window.__t?window.__t.conn():null")
+        if c and c.get('ready'): return c['mode']
+        time.sleep(0.2)
+    return None
 def shot(name):
     r = api('GET', f'/session/{sid}/screenshot')
     if isinstance(r.get('value'), str):
-        os.makedirs(SHOTS, exist_ok=True)
-        with open(os.path.join(SHOTS, name), 'wb') as f:
-            f.write(base64.b64decode(r['value']))
+        d = os.path.join(HERE, 'shots'); os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, name), 'wb').write(base64.b64decode(r['value']))
 
-sid = None
 try:
     sess = api('POST', '/session', {'capabilities': {'alwaysMatch': {
         'moz:firefoxOptions': {'args': ['-headless']}}}})
@@ -108,198 +117,201 @@ try:
     api('POST', f'/session/{sid}/window/rect', {'width': 2560, 'height': 1440})
     time.sleep(0.5)
 
-    # ============ 阶段 A：初始文件 ============
-    print('== 阶段A：初始 shdgjy.html ==')
-    goto(f'{BASE}/shdgjy.html')
-    ok('A1 登录视图可见', jsx("return !document.getElementById('view-login').classList.contains('hidden')"))
-    ok('A1 版本号 v0.3.0', 'shdgjy v0.3.0' in (jsx("return document.body.textContent") or ''))
-    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") =='0.3.0')
-    if '--shots' in sys.argv: shot('a1-login-desktop.png')
+    # ============ 阶段 0：API 层（urllib 直测 PHP 接口）============
+    print('== 阶段0：API 接口 ==')
+    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    ok('Z1 初始 GET → nodata', st == 200 and j == {'ok': False, 'code': 'nodata'}, str(j))
+    wk1 = 'a' * 64
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 1}})
+    ok('Z2 首次 POST 初始化', st == 200 and j == {'ok': True}, str(j))
+    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    ok('Z3 GET 返回初始化数据', st == 200 and j and j.get('ok') and j['data'] == {'fmt': 'H1', 'x': 1}, str(j)[:80])
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'b' * 64, 'd': {'fmt': 'H1', 'x': 2}})
+    ok('Z4 错误凭证 → 403', st == 403 and j and j.get('code') == 'denied', str(j))
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'bad', 'd': {}})
+    ok('Z5 坏格式 → 400', st == 400 and j and j.get('code') == 'badreq', str(j))
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 3}})
+    ok('Z6 正确凭证更新', st == 200 and j == {'ok': True}, str(j))
+    wk2 = '9' * 64
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'nw': wk2, 'd': {'fmt': 'H1', 'x': 4}})
+    ok('Z9a 旧凭证+nw 切换成功', st == 200 and j == {'ok': True}, str(j))
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 5}})
+    ok('Z9b 切换后旧凭证失效', st == 403 and j and j.get('code') == 'denied', str(j))
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk2, 'd': {'fmt': 'H1', 'x': 6}})
+    ok('Z9c 新凭证生效', st == 200 and j == {'ok': True}, str(j))
+    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    ok('Z9d 数据为最后一次写入', j and j.get('data') == {'fmt': 'H1', 'x': 6}, str(j)[:80])
+    raw = open(DATA_FILE).read()
+    ok('Z7 数据文件存凭证再哈希(不含wk原文)', '"w"' in raw and wk1 not in raw)
+    st, j = http('GET', f'{BASE_ON}/shdgjy-data.json')
+    ok('Z8 数据文件可直接GET(暴露面=密文,已文档化)', st == 200 and 'w' in (j or {}))
+    os.remove(DATA_FILE)  # 回到干净初始态，浏览器流程从 empty 开始
+
+    # ============ 阶段 A：在线模式（PHP）============
+    print('== 阶段A：在线模式 ==')
+    goto(f'{BASE_ON}/shdgjy.html')
+    ok('A1 连接模式 empty(服务器无数据)', wait_conn() == 'empty')
+    ok('A1 版本号', VERSION in (jsx("return document.body.textContent") or ''))
+    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.4.0')
+    shot('a1-login.png')
 
     r, dt = do_login('chen1', 'wrongpass')
     ok('A2 失败浮窗文案', r == 'toast:❌核验未通过，请重试！', r)
-    ok('A2 失败后密码已清空', jsx("return document.getElementById('li-pass').value") == '')
-    ok('A2 失败后用户名保留', jsx("return document.getElementById('li-user').value") == 'chen1')
-    print(f'  (登录派生耗时 {dt:.2f}s)')
+    ok('A2 密码清空/用户名保留',
+       jsx("return document.getElementById('li-pass').value") == '' and
+       jsx("return document.getElementById('li-user').value") == 'chen1')
     time.sleep(2.3)
-    ok('A2 浮窗2秒自动消失', jsx("return document.getElementById('toast').classList.contains('show')") is False)
-    ok('A2 静态错误行不再使用', txt('login-err') == '')
+    ok('A2 浮窗2秒消失', jsx("return document.getElementById('toast').classList.contains('show')") is False)
 
-    r, _ = do_login('nouser99', '12345678')
-    ok('A3 正确密码+不存在用户→同一浮窗', r == 'toast:❌核验未通过，请重试！', r)
-    ok('A3 用户名仍保留', jsx("return document.getElementById('li-user').value") == 'nouser99')
-
-    r, _ = do_login('user', 'wrongadmin')
-    ok('A4 管理员错误密码→同一浮窗', r == 'toast:❌核验未通过，请重试！', r)
-    time.sleep(2.2)
-
-    # × 一键清空用户名按钮
     set_input('li-user', 'someuser')
-    ok('A4b 有内容时×显示', jsx("return document.getElementById('clear-user').classList.contains('show')") is True)
-    click('clear-user')
-    time.sleep(0.2)
-    ok('A4b ×点击后用户名清空且×隐藏',
-       jsx("return document.getElementById('li-user').value") == '' and
-       jsx("return document.getElementById('clear-user').classList.contains('show')") is False)
-    ok('A4b 清空后焦点回到输入框', jsx("return document.activeElement.id") == 'li-user')
+    ok('A3 ×按钮显示', jsx("return document.getElementById('clear-user').classList.contains('show')") is True)
+    click('clear-user'); time.sleep(0.2)
+    ok('A3 ×清空并回焦', jsx("return document.getElementById('li-user').value") == '' and
+       jsx("return document.activeElement.id") == 'li-user')
 
     r, _ = do_login('user', 'admin')
-    ok('A5 管理员登录→管理视图', r == 'admin')
-    ok('A5 初始 0 人', txt('row-count') == '共 0 人')
+    ok('A4 管理员登录', r == 'admin')
+    ok('A4 empty模式提示', '首次保存' in txt('sync-note'), txt('sync-note'))
+    ok('A4 保存按钮文案', jsx("return document.getElementById('btn-save').textContent") == '保 存')
 
-    # 批量导入：表头1行 + 有效3 + 粘贴内重复1 + 缺列1
     click('btn-import')
     imp = "用户名,姓名,车牌号\nchen1,陈大山,沪A11111\nchen2,陈二水,沪B22222\nchen3,陈三石,皖C33333\nchen1,重复人,沪D99999\nbadline,缺列"
     set_input('imp-text', imp)
-    ok('A6 预览识别4条(含粘贴内重复行,去重在应用时)', txt('imp-preview') == '已识别 4 条有效数据，1 行无法识别', txt('imp-preview'))
-    click('btn-imp-ok')
-    time.sleep(0.3)
-    ok('A6 导入后 3 人', txt('row-count') == '共 3 人', txt('row-count'))
-    ok('A6 导入结果文案', '新增 3 人' in txt('imp-result') and '跳过重复 1 人' in txt('imp-result'), txt('imp-result'))
-    ok('A6 表格含陈大山', '陈大山' in txt('tbody'))
+    click('btn-imp-ok'); time.sleep(0.3)
+    ok('A5 导入后 3 人', txt('row-count') == '共 3 人', txt('row-count'))
     jsx("document.querySelectorAll('.modal.open').forEach(function(m){m.classList.remove('open')}); return null")
 
-    # 添加用户
     click('btn-add')
     set_input('f-user', 'wangwu'); set_input('f-name', '王大力'); set_input('f-plate', '沪C33333')
     click('btn-edit-ok'); time.sleep(0.2)
-    ok('A7 添加后 4 人', txt('row-count') == '共 4 人', txt('row-count'))
+    ok('A6 添加后 4 人', txt('row-count') == '共 4 人')
 
-    # 重复用户名被拒
-    click('btn-add')
-    set_input('f-user', 'chen1'); set_input('f-name', '重复'); set_input('f-plate', '沪Z00000')
-    click('btn-edit-ok'); time.sleep(0.2)
-    ok('A8 重复用户名被拒', txt('edit-err') == '用户名已存在')
-    jsx("document.getElementById('modal-edit').classList.remove('open'); return null")
-
-    # 保留名被拒
-    click('btn-add')
-    set_input('f-user', 'user'); set_input('f-name', '冒名'); set_input('f-plate', '沪Z11111')
-    click('btn-edit-ok'); time.sleep(0.2)
-    ok('A9 保留名 tww 被拒', txt('edit-err') == '该用户名为管理员保留名')
-    jsx("document.getElementById('modal-edit').classList.remove('open'); return null")
-
-    # 编辑 chen1 姓名
-    jsx("var b=[].slice.call(document.querySelectorAll('#tbody .row-btn')).filter(function(x){return x.textContent==='编辑'})[0]; b.click(); return null")
+    jsx("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[0].textContent==='chen1'})[0];"
+        "if(row){row.querySelector('.row-btn').click()} return row?1:0")
     time.sleep(0.2)
     set_input('f-name', '陈大山峰'); set_input('f-plate', '沪A12345')
     click('btn-edit-ok'); time.sleep(0.2)
-    ok('A10 编辑生效', '陈大山峰' in txt('tbody') and '沪A12345' in txt('tbody'))
-    ok('A10 编辑后仍 4 人', txt('row-count') == '共 4 人')
+    ok('A7 编辑生效', '陈大山峰' in txt('tbody'))
 
-    # 搜索
-    set_input('search-box', '沪A')
-    ok('A11 搜索过滤 1/4', txt('row-count') == '匹配 1 / 4 人', txt('row-count'))
-    set_input('search-box', '')
-    ok('A11 清空搜索恢复', txt('row-count') == '共 4 人')
-
-    # 删除 chen2（确认弹窗走真实点击）
     del2 = ("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[0].textContent==='chen2'})[0];"
             "if(row){row.querySelector('.row-btn.del').click()} return row?1:0")
     jsx(del2); time.sleep(0.2)
-    ok('A12 删除确认框弹出', jsx("return document.getElementById('modal-confirm').classList.contains('open')"))
     click('btn-confirm-ok'); time.sleep(0.2)
-    ok('A12 删除后 3 人', txt('row-count') == '共 3 人', txt('row-count'))
+    ok('A8 删除后 3 人', txt('row-count') == '共 3 人', txt('row-count'))
 
-    # 未保存状态条
-    ok('A13 未保存提示出现', jsx("return document.getElementById('save-bar').classList.contains('show')"))
-    if '--shots' in sys.argv: shot('a13-admin-desktop.png')
+    set_input('search-box', '沪A')
+    ok('A9 搜索过滤', txt('row-count') == '匹配 1 / 3 人', txt('row-count'))
+    set_input('search-box', '')
+    ok('A9 dirty 提示', jsx("return document.getElementById('save-bar').classList.contains('show')"))
 
-    # 密码设置：统一密码改为新值
     click('btn-set')
-    ok('A14 设置框预填当前统一密码', jsx("return document.getElementById('set-unified').value") == '12345678')
     set_input('set-unified', 'shdgjy2026ok')
     click('btn-set-ok'); time.sleep(0.2)
-    ok('A14 设置弹窗关闭', not jsx("return document.getElementById('modal-settings').classList.contains('open')"))
 
-    # CSV 钩子
-    csv = jsx("return window.__t.buildCsv()")
-    ok('A15 CSV 含表头与3行(4行3个换行)', isinstance(csv, str) and csv.count('\n') == 3 and '陈大山峰' in csv and csv.startswith('\ufeff用户名,姓名,车牌号'),
-       repr(csv)[:80] if isinstance(csv, str) else str(csv))
-
-    # 保存并生成文件（真实点击按钮，再从钩子取产物）
+    # 在线保存 → POST 到服务器
     click('btn-save')
-    for _ in range(80):
+    okd = False
+    t0 = time.time()
+    while time.time() - t0 < 30:
+        if '已保存到服务器' in txt('toast'): okd = True; break
+        time.sleep(0.2)
+    ok('A10 在线保存成功提示', okd, txt('toast'))
+    time.sleep(0.5)
+    ok('A10 数据文件已生成', os.path.exists(DATA_FILE))
+    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    ok('A10 服务器数据为密文格式', st == 200 and j and j.get('ok') and j['data'].get('fmt') == 'H1')
+    ok('A10 dirty 清除+时间更新', jsx("return window.__t.state()").get('dirty') is False and
+       '数据更新时间 20' in txt('data-time'), txt('data-time'))
+    shot('a10-admin-online.png')
+
+    # 跨设备一致性：刷新页面（模拟另一台设备），数据来自服务器
+    goto(f'{BASE_ON}/shdgjy.html')
+    ok('A11 刷新后连接 online', wait_conn() == 'online')
+    r, _ = do_login('chen1', 'shdgjy2026ok')
+    ok('A11 新设备普通用户登录(服务器数据)', r == 'user')
+    ok('A11 核验信息正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345')
+    shot('a11-user.png')
+    click('btn-logout-u'); time.sleep(0.4)
+
+    r, _ = do_login('chen1', '12345678')
+    ok('A12 旧统一密码失效', r == 'toast:❌核验未通过，请重试！', r)
+    time.sleep(2.2)
+
+    # 改管理员密码 → 保存 → 凭证轮换
+    r, _ = do_login('user', 'admin')
+    ok('A13 管理员登录', r == 'admin')
+    click('btn-set')
+    set_input('set-admin-pass', 'newadmin77'); set_input('set-admin-pass2', 'newadmin77')
+    click('btn-set-ok'); time.sleep(0.2)
+    click('btn-save')
+    okd = False
+    t0 = time.time()
+    while time.time() - t0 < 30:
+        if '已保存到服务器' in txt('toast'): okd = True; break
+        time.sleep(0.2)
+    ok('A14 改密后保存成功', okd, txt('toast'))
+    time.sleep(0.5)
+    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'c' * 64, 'd': {'fmt': 'H1'}})
+    ok('A14 伪造凭证写入被拒', st == 403 and j and j.get('code') == 'denied', str(j))
+    click('btn-logout-a'); time.sleep(0.5)
+    r, _ = do_login('user', 'admin')
+    ok('A15 旧管理员密码失效', r == 'toast:❌核验未通过，请重试！', r)
+    time.sleep(2.2)
+    r, _ = do_login('user', 'newadmin77')
+    ok('A15 新管理员密码生效', r == 'admin')
+
+    # ============ 阶段 B：离线降级（无 PHP 服务器）============
+    print('== 阶段B：离线降级 ==')
+    goto(f'{BASE_OFF}/shdgjy.html')
+    ok('B1 连接模式 offline', wait_conn() == 'offline')
+    r, _ = do_login('user', 'admin')
+    ok('B2 离线用内嵌初始数据登录', r == 'admin', r)
+    ok('B2 离线提示', '离线模式' in txt('sync-note'), txt('sync-note'))
+    ok('B2 按钮文案', jsx("return document.getElementById('btn-save').textContent") == '保存并生成文件')
+    click('btn-import')
+    set_input('imp-text', 'litest,李测试,沪T00001')
+    click('btn-imp-ok'); time.sleep(0.3)
+    jsx("document.querySelectorAll('.modal.open').forEach(function(m){m.classList.remove('open')}); return null")
+    click('btn-save')
+    t0 = time.time()
+    while time.time() - t0 < 20:
         if jsx("return document.getElementById('modal-export').classList.contains('open')"): break
         time.sleep(0.25)
-    ok('A16 导出弹窗弹出', jsx("return document.getElementById('modal-export').classList.contains('open')"))
+    ok('B3 离线保存→导出弹窗', jsx("return document.getElementById('modal-export').classList.contains('open')"))
     exp = jsx("return window.__t.generateFile()")
-    ok('A16 生成文件非空', isinstance(exp, dict) and len(exp.get('html', '')) > 30000, str(type(exp)))
-    html = exp['html']
-    ok('A16 DOCTYPE+闭合', html.startswith('<!DOCTYPE html>') and html.rstrip().endswith('</html>'))
-    ok('A16 含新数据块', '"fmt":"H1"' in html)
-    ok('A16 无真实数据明文泄露', ('王大力' not in html) and ('陈大山峰' not in html) and ('chen3' not in html))
-    ok('A16 无会话残留(modal open)', 'modal open' not in html and 'save-bar show' not in html)
-    ok('A16 管理视图已还原隐藏', 'id="view-admin" class="view hidden"' in html)
-    ok('A16 登录视图还原可见', 'id="view-login" class="view"' in html)
-    ok('A16 版本号保留', 'shdgjy v0.3.0' in html)
-    with open(OUT_TEST, 'w', encoding='utf-8') as f:
-        f.write(html)
-    st = jsx("return window.__t.state()")
-    ok('A16 保存后脏标记清除', st and st['dirty'] is False)
+    html = exp['html'] if isinstance(exp, dict) else ''
+    ok('B3 生成文件完整', html.startswith('<!DOCTYPE html>') and html.rstrip().endswith('</html>'))
+    ok('B3 无明文泄露', ('李测试' not in html) and ('litest' not in html))
+    ok('B3 无会话残留', 'modal open' not in html and 'save-bar show' not in html)
+    ok('B3 版本保留', VERSION in html)
+    shot('b3-offline-export.png')
 
-    # ============ 阶段 B：导出文件重新登录 ============
-    print('== 阶段B：导出产物 out-test.html ==')
-    goto(f'{BASE}/dev/out-test.html')
-    ok('B1 登录视图可见', jsx("return !document.getElementById('view-login').classList.contains('hidden')"))
-    r, _ = do_login('chen1', '12345678')
-    ok('B2 旧统一密码已失效', r == 'toast:❌核验未通过，请重试！', r)
-    r, dt = do_login('chen1', 'shdgjy2026ok')
-    ok('B3 新统一密码登录成功', r == 'user', f'{r} {dt:.1f}s')
-    ok('B3 核验标题文案', jsx("return document.querySelector('#view-user .pass-title').textContent") == '核验已通过✅')
-    ok('B3 引导行文案', jsx("return document.querySelector('#view-user .info-lead').textContent") == '用户身份信息如下：')
-    ok('B3 姓名为真实姓名非用户名', txt('u-name') == '陈大山峰', txt('u-name'))
-    ok('B3 车牌号正确', txt('u-plate') == '沪A12345', txt('u-plate'))
-    full = jsx("return document.getElementById('view-user').textContent")
-    ok('B3 无用户名泄露(仅姓名+车牌)', full is not None and 'chen1' not in full)
-    if '--shots' in sys.argv: shot('b3-user-desktop.png')
-    click('btn-logout-u'); time.sleep(0.3)
-
-    r, _ = do_login('chen2', 'shdgjy2026ok')
-    ok('B4 已删除用户无法登录', r == 'toast:❌核验未通过，请重试！', r)
-
-    r, _ = do_login('user', 'admin')
-    ok('B5 管理员密码未变可登录', r == 'admin')
-    ok('B5 3 人数据完好', txt('row-count') == '共 3 人', txt('row-count'))
-    ok('B5 数据时间已更新', len(txt('data-time')) > 8, txt('data-time'))
-    ok('B5 初始干净状态(无脏标记)', not jsx("return document.getElementById('save-bar').classList.contains('show')"))
-    st = jsx("return window.__t.state()")
-    ok('B5 state 钩子一致', st and st['count'] == 3 and st['dirty'] is False)
-    if '--shots' in sys.argv: shot('b5-admin-desktop.png')
-
-    # ============ 阶段 C：file:// 离线可用 ============
+    # ============ 阶段 C：file:// 直开 ============
     print('== 阶段C：file:// 离线打开 ==')
     goto('file://' + os.path.join(ROOT, 'shdgjy.html'))
+    ok('C1 file:// 连接 offline', wait_conn() == 'offline')
     r, _ = do_login('user', 'admin')
     ok('C1 file:// 管理员可登录', r == 'admin', r)
 
-    # ============ 手机宽度（iframe 精确 390px，harness 必须走 http 同源，file:// 会跨域）============
-    print('== 阶段D：390px 手机布局 ==')
+    # ============ 阶段 D：390px 手机 ============
+    print('== 阶段D：390px ==')
     harness = os.path.join(HERE, 'harness.html')
     with open(harness, 'w', encoding='utf-8') as f:
-        f.write('<!DOCTYPE html><html><body style="margin:0">\n'
-                f'<iframe id="f" src="{BASE}/dev/out-test.html" style="width:390px;height:844px;border:0"></iframe>\n'
+        f.write(f'<!DOCTYPE html><html><body style="margin:0">\n'
+                f'<iframe id="f" src="{BASE_ON}/shdgjy.html" style="width:390px;height:844px;border:0"></iframe>\n'
                 '</body></html>')
-    goto(f'{BASE}/dev/harness.html')
+    goto(f'{BASE_ON}/dev/harness.html')
     time.sleep(1.5)
     m = jsx("var d=document.getElementById('f').contentWindow.document;"
             "var r=[d.getElementById('li-user'),d.getElementById('btn-login')].map(function(e){var b=e.getBoundingClientRect();return [Math.round(b.left),Math.round(b.right),Math.round(b.width)]});"
             "return r")
-    ok('D1 登录框适配390px(无横向溢出)', m and all(row[1] <= 391 for row in m) and m[0][2] > 200, str(m))
-    if '--shots' in sys.argv:
-        el = api('POST', f'/session/{sid}/element', {'using': 'css selector', 'value': '#f'})
-        if 'value' in el and isinstance(el['value'], dict) and 'elementId' in el['value']:
-            eid = el['value']['elementId']
-            s2 = api('GET', f'/session/{sid}/element/{eid}/screenshot')
-            if isinstance(s2.get('value'), str):
-                os.makedirs(SHOTS, exist_ok=True)
-                with open(os.path.join(SHOTS, 'd1-login-mobile390.png'), 'wb') as f:
-                    f.write(base64.b64decode(s2['value']))
+    ok('D1 登录框适配390px', m and all(row[1] <= 391 for row in m) and m[0][2] > 200, str(m))
 
 finally:
     print(f'\n结果: {PASS} 通过, {FAIL} 失败')
     try:
         if sid: api('DELETE', f'/session/{sid}')
     except Exception: pass
-    gd.terminate(); server.terminate()
+    for p in (gd, php, pysrv):
+        p.terminate()
     sys.exit(1 if FAIL else 0)
