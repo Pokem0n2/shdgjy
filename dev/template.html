@@ -500,17 +500,22 @@ var lastExport=null;
 
 function $(id){ return document.getElementById(id); }
 
-// ---------- 服务器连接（shdgjy-api.php）----------
+// ---------- 服务器连接（数据接口，独立部署于同主机 8443 端口）----------
 // online  = 接口可用，数据以服务器为准，保存直接写服务器
 // empty   = 接口可用但服务器尚无数据（首次保存即初始化）
-// offline = 接口不可用（file:// 打开或未部署 PHP），保存退回生成文件模式
+// offline = 接口不可用（file:// 打开或接口未部署），保存退回生成文件模式
 var conn={mode:'offline', ready:false};
 var connReady=null;
+function apiBase(){
+  // 与页面同主机、独立端口（docker 部署）；协议跟随页面；
+  // file:// 打开时 hostname 为空，fetch 自然失败 → 离线模式
+  return location.protocol+'//'+location.hostname+':8443';
+}
 function initConn(){
   connReady=(function(){
     var sig, timer;
     if(typeof AbortController!=='undefined'){ var c=new AbortController(); sig=c.signal; timer=setTimeout(function(){c.abort();}, 8000); }
-    return fetch('shdgjy-api.php', {cache:'no-store', signal:sig})
+    return fetch(apiBase()+'/', {cache:'no-store', signal:sig})
       .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
       .then(function(j){
         if(j&&j.ok&&j.data&&j.data.fmt==='H1'){ auth=j.data; conn.mode='online'; }
@@ -858,7 +863,7 @@ function postSave(appDataObj, done){
   var wk=state.oldWk||cur;
   var body={wk:wk, d:appDataObj};
   if(state.oldWk) body.nw=cur;
-  fetch('shdgjy-api.php', {
+  fetch(apiBase()+'/', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(body)

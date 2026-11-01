@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 # shdgjy v0.4.x 全流程功能测试
-# 架构：PHP 在线模式（php -S）+ 离线模式（python http.server，无 PHP → 降级）
-# 覆盖：API 层、浏览器在线保存、跨设备数据一致性、改密轮换凭证、
+# 架构：在线模式（静态页面 + amd64 API 容器跨端口 CORS）+ 离线模式（API 停止 → 降级）
 #       离线降级生成文件、file:// 打开、390px 手机布局
 import json, subprocess, time, sys, os, urllib.request, urllib.error, base64
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DATA_FILE = os.path.join(ROOT, 'shdgjy-data.json')
+DATA_FILE = '/tmp/shdgjy-test-data/shdgjy-data.json'   # API 容器挂载卷（静态目录之外）
 GD = '/home/spark/.local/bin/geckodriver'
-GPORT, PHP_PORT, PY_PORT = 4480, 8140, 8141
-BASE_ON = f'http://127.0.0.1:{PHP_PORT}'    # 在线（PHP）
-BASE_OFF = f'http://127.0.0.1:{PY_PORT}'    # 离线（无 PHP）
-VERSION = 'v0.4.0'
+GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
+BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
+BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
+API_URL = f'http://127.0.0.1:{API_PORT}'
+VERSION = 'v0.5.0'
+DOCKER = ['sudo', '-n', 'docker']
+API_CONTAINER = 'shdgjy-api-test'
 
 for k in list(os.environ):
     if 'proxy' in k.lower() or 'PROXY' in k:
         del os.environ[k]
 
+subprocess.run(DOCKER + ['start', API_CONTAINER], stdout=subprocess.DEVNULL)
 if os.path.exists(DATA_FILE):
     os.remove(DATA_FILE)
 
-php = subprocess.Popen(['php', '-S', f'127.0.0.1:{PHP_PORT}', '-t', ROOT],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-pysrv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PY_PORT), '-d', ROOT],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+on_srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(ON_PORT), '-d', ROOT],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+off_srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(OFF_PORT), '-d', ROOT],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 gd = subprocess.Popen([GD, '--port', str(GPORT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(2)
 
@@ -119,40 +122,41 @@ try:
 
     # ============ 阶段 0：API 层（urllib 直测 PHP 接口）============
     print('== 阶段0：API 接口 ==')
-    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    st, j = http('GET', API_URL + '/')
     ok('Z1 初始 GET → nodata', st == 200 and j == {'ok': False, 'code': 'nodata'}, str(j))
     wk1 = 'a' * 64
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 1}})
+    st, j = http('POST', API_URL + '/', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 1}})
     ok('Z2 首次 POST 初始化', st == 200 and j == {'ok': True}, str(j))
-    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    st, j = http('GET', API_URL + '/')
     ok('Z3 GET 返回初始化数据', st == 200 and j and j.get('ok') and j['data'] == {'fmt': 'H1', 'x': 1}, str(j)[:80])
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'b' * 64, 'd': {'fmt': 'H1', 'x': 2}})
+    st, j = http('POST', API_URL + '/', {'wk': 'b' * 64, 'd': {'fmt': 'H1', 'x': 2}})
     ok('Z4 错误凭证 → 403', st == 403 and j and j.get('code') == 'denied', str(j))
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'bad', 'd': {}})
+    st, j = http('POST', API_URL + '/', {'wk': 'bad', 'd': {}})
     ok('Z5 坏格式 → 400', st == 400 and j and j.get('code') == 'badreq', str(j))
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 3}})
+    st, j = http('POST', API_URL + '/', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 3}})
     ok('Z6 正确凭证更新', st == 200 and j == {'ok': True}, str(j))
     wk2 = '9' * 64
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'nw': wk2, 'd': {'fmt': 'H1', 'x': 4}})
+    st, j = http('POST', API_URL + '/', {'wk': wk1, 'nw': wk2, 'd': {'fmt': 'H1', 'x': 4}})
     ok('Z9a 旧凭证+nw 切换成功', st == 200 and j == {'ok': True}, str(j))
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 5}})
+    st, j = http('POST', API_URL + '/', {'wk': wk1, 'd': {'fmt': 'H1', 'x': 5}})
     ok('Z9b 切换后旧凭证失效', st == 403 and j and j.get('code') == 'denied', str(j))
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': wk2, 'd': {'fmt': 'H1', 'x': 6}})
+    st, j = http('POST', API_URL + '/', {'wk': wk2, 'd': {'fmt': 'H1', 'x': 6}})
     ok('Z9c 新凭证生效', st == 200 and j == {'ok': True}, str(j))
-    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    st, j = http('GET', API_URL + '/')
     ok('Z9d 数据为最后一次写入', j and j.get('data') == {'fmt': 'H1', 'x': 6}, str(j)[:80])
     raw = open(DATA_FILE).read()
     ok('Z7 数据文件存凭证再哈希(不含wk原文)', '"w"' in raw and wk1 not in raw)
-    st, j = http('GET', f'{BASE_ON}/shdgjy-data.json')
-    ok('Z8 数据文件可直接GET(暴露面=密文,已文档化)', st == 200 and 'w' in (j or {}))
+    st, j = http('GET', f'{BASE_ON}/dev/test-data-should-not-exist.json')
+    ok('Z8 数据文件不经静态服务器(仅API容器可读)', st == 404, str(st))
     os.remove(DATA_FILE)  # 回到干净初始态，浏览器流程从 empty 开始
+    time.sleep(0.3)
 
     # ============ 阶段 A：在线模式（PHP）============
     print('== 阶段A：在线模式 ==')
     goto(f'{BASE_ON}/shdgjy.html')
     ok('A1 连接模式 empty(服务器无数据)', wait_conn() == 'empty')
     ok('A1 版本号', VERSION in (jsx("return document.body.textContent") or ''))
-    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.4.0')
+    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.5.0')
     shot('a1-login.png')
 
     r, dt = do_login('chen1', 'wrongpass')
@@ -218,7 +222,7 @@ try:
     ok('A10 在线保存成功提示', okd, txt('toast'))
     time.sleep(0.5)
     ok('A10 数据文件已生成', os.path.exists(DATA_FILE))
-    st, j = http('GET', f'{BASE_ON}/shdgjy-api.php')
+    st, j = http('GET', API_URL + '/')
     ok('A10 服务器数据为密文格式', st == 200 and j and j.get('ok') and j['data'].get('fmt') == 'H1')
     ok('A10 dirty 清除+时间更新', jsx("return window.__t.state()").get('dirty') is False and
        '数据更新时间 20' in txt('data-time'), txt('data-time'))
@@ -251,7 +255,7 @@ try:
         time.sleep(0.2)
     ok('A14 改密后保存成功', okd, txt('toast'))
     time.sleep(0.5)
-    st, j = http('POST', f'{BASE_ON}/shdgjy-api.php', {'wk': 'c' * 64, 'd': {'fmt': 'H1'}})
+    st, j = http('POST', API_URL + '/', {'wk': 'c' * 64, 'd': {'fmt': 'H1'}})
     ok('A14 伪造凭证写入被拒', st == 403 and j and j.get('code') == 'denied', str(j))
     click('btn-logout-a'); time.sleep(0.5)
     r, _ = do_login('user', 'admin')
@@ -262,6 +266,7 @@ try:
 
     # ============ 阶段 B：离线降级（无 PHP 服务器）============
     print('== 阶段B：离线降级 ==')
+    subprocess.run(DOCKER + ['stop', API_CONTAINER], stdout=subprocess.DEVNULL)
     goto(f'{BASE_OFF}/shdgjy.html')
     ok('B1 连接模式 offline', wait_conn() == 'offline')
     r, _ = do_login('user', 'admin')
@@ -295,6 +300,8 @@ try:
 
     # ============ 阶段 D：390px 手机 ============
     print('== 阶段D：390px ==')
+    subprocess.run(DOCKER + ['start', API_CONTAINER], stdout=subprocess.DEVNULL)
+    time.sleep(1)
     harness = os.path.join(HERE, 'harness.html')
     with open(harness, 'w', encoding='utf-8') as f:
         f.write(f'<!DOCTYPE html><html><body style="margin:0">\n'
@@ -307,11 +314,15 @@ try:
             "return r")
     ok('D1 登录框适配390px', m and all(row[1] <= 391 for row in m) and m[0][2] > 200, str(m))
 
+except Exception:
+    import traceback
+    traceback.print_exc()
+    FAIL += 1
 finally:
     print(f'\n结果: {PASS} 通过, {FAIL} 失败')
     try:
         if sid: api('DELETE', f'/session/{sid}')
     except Exception: pass
-    for p in (gd, php, pysrv):
+    for p in (gd, on_srv, off_srv):
         p.terminate()
     sys.exit(1 if FAIL else 0)

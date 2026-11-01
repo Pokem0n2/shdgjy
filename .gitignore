@@ -4,3 +4,5 @@ dev/shots/
 shdgjy-v*.html
 *.pyc
 __pycache__/
+dist/
+dev/shdgjy-api-amd64

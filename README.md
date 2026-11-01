@@ -2,16 +2,20 @@
 
 进出场身份核验 + 用户管理。数据加密存储在服务器上一个 JSON 文件中，加解密全部在浏览器本地完成，服务端只见密文。**页面与接口各上传一次，之后所有变更在网页里点"保存"即时生效，无需再访问服务器后台。**
 
-## 部署（一次性）
+## 部署（一次性，v0.5.0 起）
 
-把两个文件上传到站点目录（宝塔：`/www/server/nginx/html/`）：
+**页面**：`shdgjy.html` 上传到站点目录（宝塔：`/www/server/nginx/html/`），nginx 配置与现有文件零改动。
 
-| 文件 | 作用 |
-|---|---|
-| `shdgjy.html` | 页面本体（访问 `http://yzz.cool/shdgjy.html`） |
-| `shdgjy-api.php` | 数据读写接口（需站点支持 PHP） |
+**数据接口**：独立 docker 容器（Go 单二进制，仅读写一个加密 JSON 文件），不装 PHP、不动 nginx、不影响现有容器：
 
-前置条件：站点可执行 PHP（宝塔"网站"设置里有 PHP 版本即满足）。验证方法：上传 `dev/test.php` 后访问 `/test.php`，显示 `PHP OK` 即可，测完删除。
+```bash
+docker load < /root/shdgjy-api-image.tar
+docker run -d --name shdgjy-api --restart always -p 8443:8443 -v /www/shdgjy:/data shdgjy-api:latest
+```
+
+阿里云安全组放行 8443。验证：`curl http://yzz.cool:8443/` 返回 `{"code":"nodata",...}` 即部署成功。
+
+页面自动定位同主机 8443 端口的接口；接口不可达时自动降级为单文件模式。
 
 首次使用：管理员登录 → 批量导入用户 → 密码设置改掉两个初始密码 → 点"保存"（首次保存即完成服务器数据初始化）。
 
@@ -41,7 +45,9 @@
 
 ```
 dev/template.html      页面源码模板（__APP_DATA__ / __VERSION__ 占位符）
-shdgjy-api.php         数据接口（PHP，部署名，源即此文件）
+dev/api.go             数据接口源码（Go 单二进制，交付镜像由它构建）
+dev/Dockerfile          接口镜像构建文件（amd64）
+dev/api.php             PHP 版接口（备用实现，未部署无攻击面）
 dev/build.js           生成初始文件：node dev/build.js --admin-pwd X --user-pwd Y
 dev/test-crypto.js     加密向量测试（Node 官方 crypto + OpenSSL 双仲裁）：node dev/test-crypto.js
 dev/test-functional.py 全流程功能测试（PHP 在线 + 离线降级，54 项断言）：python3 dev/test-functional.py
@@ -54,4 +60,4 @@ dev/test.php           PHP 环境探针（上传后访问 /test.php）
 ## 版本与命名
 
 - 仓库主文件始终为 `shdgjy.html`；对外交付副本命名为 `shdgjy-vX.Y.Z.html`，版本号同步出现在页脚。
-- v0.4.0 起为服务器持久化架构（PHP 接口）；v0.3.x 及以前为单文件自再生架构。
+- v0.5.0：数据接口改为独立 Go 单二进制 docker 容器（不装 PHP、零改动现有 nginx）；v0.4.0 为 PHP 接口（备用实现在 dev/api.php）；v0.3.x 及以前为单文件自再生架构。
