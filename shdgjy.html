@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.2.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.3.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -22,9 +22,14 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 .login-card{max-width:340px;margin:9vh auto 0;padding:28px 24px}
 .login-card h1{font-size:20px;text-align:center;margin-bottom:22px;letter-spacing:1px}
 .field{display:block;margin-bottom:14px}
-.field span{display:block;font-size:13px;color:#8a8378;margin-bottom:6px}
+.field>label{display:block;font-size:13px;color:#8a8378;margin-bottom:6px}
 .field input{width:100%;height:42px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:16px;background:#fff}
 .field input:focus{outline:none;border-color:#b3653f}
+.input-wrap{position:relative;display:block}
+.input-wrap input{padding-right:38px}
+.clear-btn{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:none;background:#e8e0d4;color:#8a8378;width:22px;height:22px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0 0 1px}
+.clear-btn.show{display:flex}
+.clear-btn:hover{background:#ddd2c0;color:#4a4238}
 .err{color:#b03a2e;font-size:13px;min-height:18px;margin-bottom:8px}
 #btn-login{width:100%}
 
@@ -98,8 +103,17 @@ th.op,td.op{text-align:right;white-space:nowrap}
     <div class="card login-card">
       <h1>进出场身份验证</h1>
       <form id="login-form" autocomplete="off">
-        <label class="field"><span>用户名</span><input id="li-user" type="text" maxlength="32" autocomplete="off"></label>
-        <label class="field"><span>密码</span><input id="li-pass" type="password" maxlength="64" autocomplete="off"></label>
+        <div class="field">
+          <label for="li-user">用户名</label>
+          <span class="input-wrap">
+            <input id="li-user" type="text" maxlength="32" autocomplete="off">
+            <button type="button" id="clear-user" class="clear-btn" aria-label="清空用户名">×</button>
+          </span>
+        </div>
+        <div class="field">
+          <label for="li-pass">密码</label>
+          <input id="li-pass" type="password" maxlength="64" autocomplete="off">
+        </div>
         <div id="login-err" class="err"></div>
         <button id="btn-login" class="btn" type="submit">登 录</button>
       </form>
@@ -145,7 +159,7 @@ th.op,td.op{text-align:right;white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.2.0</footer>
+<footer>shdgjy v0.3.0</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -225,7 +239,7 @@ th.op,td.op{text-align:right;white-space:nowrap}
 
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"9fa52f9d183adecfce36025f67a385c8","sU":"866e2e28f59fdd66e4eabeb7b254bc20","aV":"c5d1663aae71071bfdc43f97118225bdace0121cdc8d620acddbd18303eba759","uV":"98d0d42e1caf63169cd9f125d557fa826084980546cf828dce6cea3d9e052f73","e1":"pTWdPDxmuIZzaTTg7f16TiMKWLbmRLg667Hy76OX+PTmLLnc/MlA8rZbNam62CeVpnj66KZM/gHu8bh4lKpcLAeWMEq0XMIwW8GEB20b2wfT6GWzCWbZXnrelHVFMVxzxFSk01e8BrcBYllWcDyaz6UuegCHnc49JQXzK4cgMSkP5P0wtg==","e2":"FPIciZiiG6p1F3cCzL5HGFpd9wenJ5P22vEmx7gqU05AITQRyLsEQiUs5rMZ+PllVQ61Z0wfOaScakDRDTkUEi3Fjn+UIfr7iYGnLEdK98/IKJsnYN6VnvNVCjhgnx5vRVm+uuWppKYJPQttToCzoNJ9iirRo/+XR2pLtG2DWzLi58pzBQ=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"5c827068c1ef1b03204cb9b80c801abd","sU":"42effab7ac8acdd779e2dd5fd94631bd","aV":"663925a9b49a8e523f69d536d610bd1c81c4a15651e8c069529b2b21c960e15f","uV":"beae3b275bd48c4192d33494fab4c74623d5ffadaa0b49706d59c99a096d961c","e1":"MTFRAKuJ4v6UWNQioUikbPOxVhGRYi5dn/CWxZu7hAxXLuc4o0y9b+O1esLr134F8HIT6ZwZchF6lJaUCiA0qmXqR5DU3Qd1vJW/n8Ik8ygl1yQcK5LuFmpJ3nClTBRCj3kGuePdB32DnU+14szFtqU17RhEoiGhjbNr5ySxl4C0wqeIWA==","e2":"9jqizn8hr8+St/+mOp299TGhAzKlBUYqHjs/4dO/CuZPHiRUM09wbtMiRVws6HcxLm0f0Fv8fyCXwhwl7eRjVsPHQDwrOHaGgqAR+51HZmE0J/32e3LYG/WDtMH0RMFviwZYibdAI6iKtKxH/jtcrBXPst99l9GB7x8H776iuxZqLqrkiQ=="}</script>
 <script>
 (function(){
 'use strict';
@@ -471,7 +485,7 @@ function keyVer(key){ return bytesToHex(sha256(key)); } // 口令派生密钥的
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.2.0';
+var APP_VERSION='0.3.0';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -499,7 +513,7 @@ function toast(msg){
   t.textContent=msg;
   t.classList.add('show');
   if(toastTimer) clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2000);
 }
 
 // ---------- 登录 ----------
@@ -511,25 +525,25 @@ function doLogin(){
   var btn=$('btn-login');
   btn.disabled=true; btn.textContent='验证中…';
   setTimeout(function(){
-    var fail=function(msg){ errEl.textContent=msg; };
+    var fail=function(){ toast('❌核验未通过，请重试！'); };
     try{
       if(u===ADMIN_USER){
         var Ka=deriveKey(p, auth.sA, auth.it);
-        if(keyVer(Ka)!==auth.aV){ fail('密码错误'); }
+        if(keyVer(Ka)!==auth.aV){ fail(); }
         else{
           var payloadA=JSON.parse(decPayload(Ka, auth.e2));
           enterAdmin(payloadA, p);
         }
       }else{
         var Ku=deriveKey(p, auth.sU, auth.it);
-        if(keyVer(Ku)!==auth.uV){ fail('密码错误'); }
+        if(keyVer(Ku)!==auth.uV){ fail(); }
         else{
           var payloadU=JSON.parse(decPayload(Ku, auth.e1));
           var found=null;
           for(var i=0;i<payloadU.users.length;i++){
             if(payloadU.users[i].u===u){ found=payloadU.users[i]; break; }
           }
-          if(!found){ fail('用户名不存在'); }
+          if(!found){ fail(); }
           else{
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
@@ -806,6 +820,7 @@ function serializePage(appDataObj){
   var et=root.querySelector('#empty-tip'); if(et) et.classList.add('hidden');
   var sb=root.querySelector('#save-bar'); if(sb) sb.classList.remove('show');
   var tt=root.querySelector('#toast'); if(tt) tt.classList.remove('show');
+  var cu=root.querySelector('#clear-user'); if(cu) cu.classList.remove('show');
   root.querySelectorAll('.modal.open').forEach(function(m){ m.classList.remove('open'); });
   root.querySelectorAll('input,textarea').forEach(function(n){ n.removeAttribute('value'); });
   return '<!DOCTYPE html>\n'+root.outerHTML;
@@ -832,6 +847,16 @@ function boot(){
     return;
   }
   $('login-form').addEventListener('submit', function(e){ e.preventDefault(); doLogin(); });
+  // 用户名 × 一键清空（输入框内右侧）
+  $('li-user').addEventListener('input', function(){
+    $('clear-user').classList.toggle('show', this.value.length>0);
+  });
+  $('clear-user').addEventListener('click', function(){
+    var inp=$('li-user');
+    inp.value='';
+    this.classList.remove('show');
+    inp.focus();
+  });
   $('btn-logout-u').addEventListener('click', function(){ doLogout(); });
   $('btn-logout-a').addEventListener('click', function(){
     if(state&&state.dirty){

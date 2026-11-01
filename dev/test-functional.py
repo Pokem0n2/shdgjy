@@ -68,11 +68,13 @@ def set_input(el_id, value, ev='input'):
     return jsx(js)
 
 def wait_login_result(timeout=25):
-    """提交登录后轮询，返回 (结果类型, 耗时秒)：err 文案 / user / admin"""
+    """提交登录后轮询，返回 (结果类型, 耗时秒)：err 静态错误 / toast 浮窗 / user / admin"""
     t0 = time.time()
     while time.time() - t0 < timeout:
         err = txt('login-err')
         if err: return ('err:' + err, time.time() - t0)
+        t = jsx("var e=document.getElementById('toast'); return e.classList.contains('show') ? e.textContent : ''")
+        if t: return ('toast:' + t, time.time() - t0)
         v = jsx("return [!document.getElementById('view-user').classList.contains('hidden'),"
                 "!document.getElementById('view-admin').classList.contains('hidden')]")
         if v and v[0]: return ('user', time.time() - t0)
@@ -81,6 +83,11 @@ def wait_login_result(timeout=25):
     return ('timeout', timeout)
 
 def do_login(u, p):
+    # 等上一次浮窗消失（2秒自动隐藏），避免把上次结果误判为本次
+    t0 = time.time()
+    while time.time() - t0 < 3.0:
+        if jsx("return document.getElementById('toast').classList.contains('show')") is not True: break
+        time.sleep(0.15)
     set_input('li-user', u)
     set_input('li-pass', p)
     click('btn-login')
@@ -105,19 +112,36 @@ try:
     print('== 阶段A：初始 shdgjy.html ==')
     goto(f'{BASE}/shdgjy.html')
     ok('A1 登录视图可见', jsx("return !document.getElementById('view-login').classList.contains('hidden')"))
-    ok('A1 版本号 v0.2.0', 'shdgjy v0.2.0' in (jsx("return document.body.textContent") or ''))
-    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.2.0')
+    ok('A1 版本号 v0.3.0', 'shdgjy v0.3.0' in (jsx("return document.body.textContent") or ''))
+    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") =='0.3.0')
     if '--shots' in sys.argv: shot('a1-login-desktop.png')
 
     r, dt = do_login('chen1', 'wrongpass')
-    ok('A2 错误统一密码→密码错误', r == 'err:密码错误', f'{r} {dt:.1f}s')
+    ok('A2 失败浮窗文案', r == 'toast:❌核验未通过，请重试！', r)
+    ok('A2 失败后密码已清空', jsx("return document.getElementById('li-pass').value") == '')
+    ok('A2 失败后用户名保留', jsx("return document.getElementById('li-user').value") == 'chen1')
     print(f'  (登录派生耗时 {dt:.2f}s)')
+    time.sleep(2.3)
+    ok('A2 浮窗2秒自动消失', jsx("return document.getElementById('toast').classList.contains('show')") is False)
+    ok('A2 静态错误行不再使用', txt('login-err') == '')
 
     r, _ = do_login('nouser99', '12345678')
-    ok('A3 正确密码+不存在用户→用户名不存在', r == 'err:用户名不存在')
+    ok('A3 正确密码+不存在用户→同一浮窗', r == 'toast:❌核验未通过，请重试！', r)
+    ok('A3 用户名仍保留', jsx("return document.getElementById('li-user').value") == 'nouser99')
 
     r, _ = do_login('user', 'wrongadmin')
-    ok('A4 管理员错误密码→密码错误', r == 'err:密码错误')
+    ok('A4 管理员错误密码→同一浮窗', r == 'toast:❌核验未通过，请重试！', r)
+    time.sleep(2.2)
+
+    # × 一键清空用户名按钮
+    set_input('li-user', 'someuser')
+    ok('A4b 有内容时×显示', jsx("return document.getElementById('clear-user').classList.contains('show')") is True)
+    click('clear-user')
+    time.sleep(0.2)
+    ok('A4b ×点击后用户名清空且×隐藏',
+       jsx("return document.getElementById('li-user').value") == '' and
+       jsx("return document.getElementById('clear-user').classList.contains('show')") is False)
+    ok('A4b 清空后焦点回到输入框', jsx("return document.activeElement.id") == 'li-user')
 
     r, _ = do_login('user', 'admin')
     ok('A5 管理员登录→管理视图', r == 'admin')
@@ -208,7 +232,7 @@ try:
     ok('A16 无会话残留(modal open)', 'modal open' not in html and 'save-bar show' not in html)
     ok('A16 管理视图已还原隐藏', 'id="view-admin" class="view hidden"' in html)
     ok('A16 登录视图还原可见', 'id="view-login" class="view"' in html)
-    ok('A16 版本号保留', 'shdgjy v0.2.0' in html)
+    ok('A16 版本号保留', 'shdgjy v0.3.0' in html)
     with open(OUT_TEST, 'w', encoding='utf-8') as f:
         f.write(html)
     st = jsx("return window.__t.state()")
@@ -219,7 +243,7 @@ try:
     goto(f'{BASE}/dev/out-test.html')
     ok('B1 登录视图可见', jsx("return !document.getElementById('view-login').classList.contains('hidden')"))
     r, _ = do_login('chen1', '12345678')
-    ok('B2 旧统一密码已失效', r == 'err:密码错误', r)
+    ok('B2 旧统一密码已失效', r == 'toast:❌核验未通过，请重试！', r)
     r, dt = do_login('chen1', 'shdgjy2026ok')
     ok('B3 新统一密码登录成功', r == 'user', f'{r} {dt:.1f}s')
     ok('B3 核验标题文案', jsx("return document.querySelector('#view-user .pass-title').textContent") == '核验已通过✅')
@@ -232,7 +256,7 @@ try:
     click('btn-logout-u'); time.sleep(0.3)
 
     r, _ = do_login('chen2', 'shdgjy2026ok')
-    ok('B4 已删除用户无法登录', r == 'err:用户名不存在', r)
+    ok('B4 已删除用户无法登录', r == 'toast:❌核验未通过，请重试！', r)
 
     r, _ = do_login('user', 'admin')
     ok('B5 管理员密码未变可登录', r == 'admin')
