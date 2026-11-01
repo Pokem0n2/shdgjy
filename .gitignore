@@ -1,0 +1,6 @@
+dev/out-*.html
+dev/harness.html
+dev/shots/
+shdgjy-v*.html
+*.pyc
+__pycache__/
