@@ -39,7 +39,7 @@ docker run -d --name shdgjy-api --restart always -p 8443:8443 -v /www/shdgjy:/da
 
 ## 初始账号
 
-管理员用户名 `user`；初始密码不在本仓库记录，见交付说明。
+管理员用户名 `user`（仓库示例值）；初始密码不在本仓库记录，见交付说明。
 
 ## 开发
 
