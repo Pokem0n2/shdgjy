@@ -57,7 +57,18 @@ dev/test.php           PHP 环境探针（上传后访问 /test.php）
 
 升级流程：改 `dev/template.html` → `node dev/inject.js --from 线上文件 --version X.Y.Z` → 上传新 shdgjy.html（api.php 不动，服务器数据不动）→ 刷新即可。
 
+## 安卓 APK（可选）
+
+`apk/` 目录是手机端壳：WebView 全屏加载 `http://yzz.cool/shdgjy.html`，员工安装后点图标即用，无需输入网址。特性：断网本地错误页可重试、返回键双击退出、CSV/数据文件下载自动存入 Download 目录、http 明文已放行。
+
+```bash
+apk/build.sh 0.1.0 1   # versionName versionCode；产物 dist/shdgjy-v0.1.0.apk
+```
+
+构建环境注意：**必须用 JDK8 的 javac 编译**（系统 javac 21 生成的嵌套类元数据会触发 build-tools 34 的 d8 内部 NPE，任意嵌套类随机命中），d8/apksigner 仍用系统新版 java 运行。页面有更新时 APK 无需重发（它只是浏览器壳，内容跟随线上）。
+
 ## 版本与命名
 
 - 仓库主文件始终为 `shdgjy.html`；对外交付副本命名为 `shdgjy-vX.Y.Z.html`，版本号同步出现在页脚。
+- v0.1.0 APK 壳（独立版本线，tag 前缀 apk-）：WebView 加载线上页面
 - v0.5.0：数据接口改为独立 Go 单二进制 docker 容器（不装 PHP、零改动现有 nginx）；v0.4.0 为 PHP 接口（备用实现在 dev/api.php）；v0.3.x 及以前为单文件自再生架构。

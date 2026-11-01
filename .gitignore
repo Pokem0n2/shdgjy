@@ -6,3 +6,4 @@ shdgjy-v*.html
 __pycache__/
 dist/
 dev/shdgjy-api-amd64
+apk/build/
