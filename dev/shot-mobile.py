@@ -37,7 +37,7 @@ try:
     harness = os.path.join(HERE, 'harness.html')
     with open(harness, 'w', encoding='utf-8') as f:
         f.write('<!DOCTYPE html><html><body style="margin:0">\n'
-                f'<iframe id="f" src="{BASE}/shdgjy.html" style="width:390px;height:844px;border:0"></iframe>\n'
+                f'<iframe id="f" src="{BASE}/dev/out-test.html" style="width:390px;height:844px;border:0"></iframe>\n'
                 '</body></html>')
     api('POST', f'/session/{sid}/url', {'url': f'{BASE}/dev/harness.html'})
     time.sleep(2)
@@ -52,20 +52,31 @@ try:
         r = api('GET', f'/session/{sid}/screenshot')
         assert isinstance(r.get('value'), str), r
         open(path, 'wb').write(base64.b64decode(r['value']))
-    F = "var d=document.getElementById('f').contentWindow.document;"
+    def login(u, p, view):
+        F = "var d=document.getElementById('f').contentWindow.document;"
+        jsx(F + "d.getElementById('li-user').value=" + json.dumps(u) + ";"
+                "d.getElementById('li-pass').value=" + json.dumps(p) + ";"
+                "d.getElementById('btn-login').click(); return null")
+        t0 = time.time()
+        while time.time() - t0 < 25:
+            time.sleep(0.25)
+            v = jsx(F + "return !d.getElementById('" + view + "').classList.contains('hidden')")
+            if v is True: return True
+        return False
     # 登录页
     save(os.path.join(HERE, 'shots', 'm-login.png'))
-    # 登录管理员（harness 与页面同为 http 同源，可跨 iframe 操作）
-    jsx(F + "d.getElementById('li-user').value='user';"
-            "d.getElementById('li-pass').value='admin';"
-            "d.getElementById('btn-login').click(); return null")
-    t0 = time.time(); ok_login = False
-    while time.time() - t0 < 25:
-        time.sleep(0.25)
-        v = jsx(F + "return !d.getElementById('view-admin').classList.contains('hidden')")
-        if v is True: ok_login = True; break
-    print('admin logged in:', ok_login)
-    assert ok_login, 'iframe 内管理员登录失败'
+    # 普通用户核验结果页（out-test.html 中 chen1 的新密码）
+    ok_login = login('chen1', 'shdgjy2026ok', 'view-user')
+    print('user logged in:', ok_login)
+    assert ok_login, 'iframe 内普通用户登录失败'
+    save(os.path.join(HERE, 'shots', 'm-user.png'))
+    F = "var d=document.getElementById('f').contentWindow.document;"
+    jsx(F + "d.getElementById('btn-logout-u').click(); return null")
+    time.sleep(0.4)
+    # 管理员页
+    ok_admin = login('user', 'admin', 'view-admin')
+    print('admin logged in:', ok_admin)
+    assert ok_admin, 'iframe 内管理员登录失败'
     save(os.path.join(HERE, 'shots', 'm-admin.png'))
     print('OK shots saved')
 finally:

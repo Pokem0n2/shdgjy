@@ -105,8 +105,8 @@ try:
     print('== 阶段A：初始 shdgjy.html ==')
     goto(f'{BASE}/shdgjy.html')
     ok('A1 登录视图可见', jsx("return !document.getElementById('view-login').classList.contains('hidden')"))
-    ok('A1 版本号 v0.1.0', 'shdgjy v0.1.0' in (jsx("return document.body.textContent") or ''))
-    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.1.0')
+    ok('A1 版本号 v0.2.0', 'shdgjy v0.2.0' in (jsx("return document.body.textContent") or ''))
+    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.2.0')
     if '--shots' in sys.argv: shot('a1-login-desktop.png')
 
     r, dt = do_login('chen1', 'wrongpass')
@@ -208,7 +208,7 @@ try:
     ok('A16 无会话残留(modal open)', 'modal open' not in html and 'save-bar show' not in html)
     ok('A16 管理视图已还原隐藏', 'id="view-admin" class="view hidden"' in html)
     ok('A16 登录视图还原可见', 'id="view-login" class="view"' in html)
-    ok('A16 版本号保留', 'shdgjy v0.1.0' in html)
+    ok('A16 版本号保留', 'shdgjy v0.2.0' in html)
     with open(OUT_TEST, 'w', encoding='utf-8') as f:
         f.write(html)
     st = jsx("return window.__t.state()")
@@ -222,9 +222,12 @@ try:
     ok('B2 旧统一密码已失效', r == 'err:密码错误', r)
     r, dt = do_login('chen1', 'shdgjy2026ok')
     ok('B3 新统一密码登录成功', r == 'user', f'{r} {dt:.1f}s')
-    ok('B3 姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345',
-       txt('u-name') + '/' + txt('u-plate'))
-    ok('B3 用户名显示', txt('u-user') == '用户名 chen1')
+    ok('B3 核验标题文案', jsx("return document.querySelector('#view-user .pass-title').textContent") == '核验已通过✅')
+    ok('B3 引导行文案', jsx("return document.querySelector('#view-user .info-lead').textContent") == '用户身份信息如下：')
+    ok('B3 姓名为真实姓名非用户名', txt('u-name') == '陈大山峰', txt('u-name'))
+    ok('B3 车牌号正确', txt('u-plate') == '沪A12345', txt('u-plate'))
+    full = jsx("return document.getElementById('view-user').textContent")
+    ok('B3 无用户名泄露(仅姓名+车牌)', full is not None and 'chen1' not in full)
     if '--shots' in sys.argv: shot('b3-user-desktop.png')
     click('btn-logout-u'); time.sleep(0.3)
 

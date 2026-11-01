@@ -36,13 +36,14 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 .btn.subtle:hover{background:#e6dbc8}
 .btn.sm{height:32px;padding:0 12px;font-size:13px}
 
-/* 普通用户视图 */
-.user-card{max-width:420px;margin:8vh auto 0;padding:26px 24px;text-align:center}
-.ok-badge{display:inline-block;background:#e7f2e6;color:#3a7d44;font-size:14px;padding:4px 14px;border-radius:999px;margin-bottom:18px}
-.u-row{display:flex;justify-content:space-between;align-items:baseline;padding:12px 4px;border-bottom:1px dashed #e8e0d4;font-size:15px}
-.u-label{color:#8a8378}
-.u-val{font-size:22px;font-weight:600;letter-spacing:1px}
-.u-sub{color:#8a8378;font-size:13px;margin:14px 0 18px}
+/* 普通用户视图：核验结果页 */
+.user-card{max-width:420px;margin:8vh auto 0;padding:26px 24px;text-align:left}
+.pass-title{font-size:23px;font-weight:700;color:#3a7d44;margin-bottom:16px;letter-spacing:.5px}
+.info-lead{color:#8a8378;font-size:13.5px;margin-bottom:2px}
+.info-line{font-size:21px;font-weight:600;letter-spacing:.5px;padding:12px 0;border-bottom:1px dashed #e8e0d4}
+.info-line:last-of-type{border-bottom:none;padding-bottom:16px}
+.info-line .k{font-weight:400;color:#4a4238}
+.user-card .btn{display:block;margin:6px auto 0}
 
 /* 管理员视图 */
 .admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
@@ -105,13 +106,13 @@ th.op,td.op{text-align:right;white-space:nowrap}
     </div>
   </section>
 
-  <!-- 普通用户视图：验证通过，展示本人信息 -->
+  <!-- 普通用户视图：核验结果页 -->
   <section id="view-user" class="view hidden">
     <div class="card user-card">
-      <div class="ok-badge">验证通过</div>
-      <div class="u-row"><span class="u-label">姓名</span><span id="u-name" class="u-val"></span></div>
-      <div class="u-row"><span class="u-label">车牌号</span><span id="u-plate" class="u-val"></span></div>
-      <div id="u-user" class="u-sub"></div>
+      <div class="pass-title">核验已通过✅</div>
+      <div class="info-lead">用户身份信息如下：</div>
+      <div class="info-line"><span class="k">姓名：</span><span id="u-name"></span></div>
+      <div class="info-line"><span class="k">车牌号：</span><span id="u-plate"></span></div>
       <button id="btn-logout-u" class="btn subtle">退出登录</button>
     </div>
   </section>
@@ -532,7 +533,6 @@ function doLogin(){
           else{
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
-            $('u-user').textContent='用户名 '+found.u;
             session={role:'user'};
             showView('user');
           }
@@ -799,7 +799,7 @@ function serializePage(appDataObj){
   root.querySelector('#view-login').classList.remove('hidden');
   root.querySelector('#view-user').classList.add('hidden');
   root.querySelector('#view-admin').classList.add('hidden');
-  ['#login-err','#u-name','#u-plate','#u-user','#data-time','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
+  ['#login-err','#u-name','#u-plate','#data-time','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
     var n=root.querySelector(s); if(n) n.textContent='';
   });
   var tb=root.querySelector('#tbody'); if(tb) tb.textContent='';
