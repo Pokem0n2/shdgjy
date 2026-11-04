@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.6.0'
+VERSION = 'v0.6.1'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -282,8 +282,8 @@ try:
     time.sleep(0.3)
     ok('Q3 点击→放大浮窗居中显示',
        jsx("return document.getElementById('modal-qr').classList.contains('open')") is True and
-       jsx("var b=document.getElementById('qr-big').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-window.innerWidth/2)<40") is True and
-       (jsx("return document.getElementById('qr-big').width") or 0) >= 200 and
+       jsx("var b=document.getElementById('qr-big-img').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-window.innerWidth/2)<40") is True and
+       (jsx("return document.getElementById('qr-big-img').naturalWidth") or 0) >= 200 and
        '陈大山峰' in (jsx("return document.getElementById('qr-cap').textContent") or ''), '')
     shot('q3-qr-big.png')
     jsx("document.getElementById('modal-qr').click(); return null")
@@ -305,6 +305,7 @@ try:
     _vu = jsx("return !document.getElementById('view-user').classList.contains('hidden')")
     ok('Q5 扫码直达核验通过页', _vu is True, f'conn={_mode} view-user={_vu} 用时{time.time()-t0:.1f}s')
     ok('Q5 扫码展示姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345', txt('u-name') + '/' + txt('u-plate'))
+    ok('Q5 扫码直达不展示二维码(保安场景)', not (jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''))
     shot('q5-scan-ok.png')
     click('btn-logout-u'); time.sleep(0.4)
     # 篡改票据 → 失败
@@ -342,6 +343,27 @@ try:
        jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True,
        f'{time.time()-t0:.1f}s')
     time.sleep(2.2)
+
+    # Q7 普通用户登录页展示自己的二维码（自行保存/打印）
+    r, _ = do_login('chen1', 'shdgjy2026ok')
+    ok('Q7 用户登录成功', r == 'user', r)
+    _src = jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''
+    ok('Q7 登录页展示自己的二维码图', _src.startswith('data:image/png'), _src[:30])
+    ok('Q7 二维码居中显示',
+       jsx("var b=document.getElementById('u-qr-img').getBoundingClientRect(); var c=document.getElementById('u-qr-wrap').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-(c.left+c.right)/2)<10") is True and
+       (jsx("return document.getElementById('u-qr-img').naturalWidth") or 0) >= 400)
+    shot('q7-user-selfqr.png')
+    jsx("document.getElementById('u-qr-img').click(); return null"); time.sleep(0.3)
+    ok('Q7 点击放大浮窗', jsx("return document.getElementById('modal-qr').classList.contains('open')") is True and
+       (jsx("return document.getElementById('qr-big-img').naturalWidth") or 0) >= 400)
+    jsx("document.getElementById('modal-qr').click(); return null"); time.sleep(0.3)
+    zr2 = subprocess.run(['zbarimg', '-q', '--raw', os.path.join(HERE, 'shots', 'q7-user-selfqr.png')],
+                         capture_output=True, text=True)
+    z2 = [x for x in (zr2.stdout or '').strip().splitlines() if x.strip()]
+    from urllib.parse import unquote as _uq2
+    _t = jsx("return window.__t.qTicket('chen1')")
+    ok('Q7 用户页二维码可实扫解码', any(_uq2(x).startswith(f'{BASE_ON}/shdgjy.html#q=') for x in z2), str(z2)[:60])
+    click('btn-logout-u'); time.sleep(0.4)
 
     # ============ 阶段 B：离线降级（无 PHP 服务器）============
     print('== 阶段B：离线降级 ==')

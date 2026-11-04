@@ -86,6 +86,9 @@ td.qr-cell{white-space:nowrap}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
+.u-qr-wrap{margin:18px auto 4px;text-align:center}
+#u-qr-img{display:inline-block;width:220px;height:220px;max-width:70vw;max-height:70vw;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:8px;background:#fff}
+#qr-big-img{display:block;width:300px;height:300px;max-width:76vw;max-height:76vw}
 #imp-text{width:100%;height:150px;border:1px solid #ddd2c0;border-radius:8px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;background:#fff}
 #imp-text:focus{outline:none;border-color:#b3653f}
 .checkline{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:14px}
@@ -133,6 +136,9 @@ td.qr-cell{white-space:nowrap}
       <div class="info-lead">用户身份信息如下：</div>
       <div class="info-line"><span class="k">姓名：</span><span id="u-name"></span></div>
       <div class="info-line"><span class="k">车牌号：</span><span id="u-plate"></span></div>
+      <div class="u-qr-wrap" id="u-qr-wrap">
+        <img id="u-qr-img" alt="我的二维码" title="点击放大，长按可保存">
+      </div>
       <button id="btn-logout-u" class="btn subtle">退出登录</button>
     </div>
   </section>
@@ -245,7 +251,7 @@ td.qr-cell{white-space:nowrap}
 </div>
 
 <!-- 二维码放大浮窗 -->
-<div id="modal-qr" class="modal"><div class="qr-card"><canvas id="qr-big" width="300" height="300"></canvas><div class="qr-cap" id="qr-cap"></div></div></div>
+<div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
 <script type="application/json" id="app-data">__APP_DATA__</script>
@@ -600,6 +606,7 @@ function doLogin(){
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
             session={role:'user'};
+            try{ renderSelfQr(found); }catch(e){}
             showView('user');
           }
         }
@@ -661,6 +668,8 @@ function doLogout(msg){
   session=null; state=null; editingKey=null; lastExport=null;
   if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
   ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
+  ['u-name','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
+  var qi=$('u-qr-img'); if(qi) qi.removeAttribute('src'); // 防上一个用户的码残留
   showView('login');
   if(msg) toast(msg);
 }
@@ -670,7 +679,8 @@ function uHashHex(kqHex, u){
   return bytesToHex(hmacSha256(hexToBytes(kqHex), utf8Bytes('qh|'+u))).slice(0,32);
 }
 function ticketUrl(user){
-  var b64=encPayload(hexToBytes(state.kq), JSON.stringify({u:user.u, n:user.n, p:user.p}));
+  var kqHex=(state&&state.kq)||auth.kq;
+  var b64=encPayload(hexToBytes(kqHex), JSON.stringify({u:user.u, n:user.n, p:user.p}));
   return location.href.split('#')[0]+'#q='+encodeURIComponent(b64);
 }
 function drawQr(cv, text, px){
@@ -684,9 +694,17 @@ function drawQr(cv, text, px){
   return n;
 }
 function openQrBig(user){
-  drawQr($('qr-big'), ticketUrl(user), 300);
+  var cv=document.createElement('canvas');
+  drawQr(cv, ticketUrl(user), 440);
+  $('qr-big-img').src=cv.toDataURL('image/png');
   $('qr-cap').textContent=user.n+'　'+user.p;
   openModal('modal-qr');
+}
+function renderSelfQr(user){
+  var cv=document.createElement('canvas');
+  drawQr(cv, ticketUrl(user), 440); // 2x 位图：保存/打印清晰
+  $('u-qr-img').src=cv.toDataURL('image/png');
+  $('u-qr-img').onclick=function(){ openQrBig(user); };
 }
 
 // ---------- 用户表格 ----------
@@ -941,6 +959,7 @@ function serializePage(appDataObj){
   var sb=root.querySelector('#save-bar'); if(sb) sb.classList.remove('show');
   var tt=root.querySelector('#toast'); if(tt) tt.classList.remove('show');
   var qc=root.querySelector('#qr-cap'); if(qc) qc.textContent='';
+  ['u-qr-img','qr-big-img'].forEach(function(id){ var im=root.querySelector('#'+id); if(im) im.removeAttribute('src'); });
   var cu=root.querySelector('#clear-user'); if(cu) cu.classList.remove('show');
   root.querySelectorAll('.modal.open').forEach(function(m){ m.classList.remove('open'); });
   root.querySelectorAll('input,textarea').forEach(function(n){ n.removeAttribute('value'); });
@@ -1086,7 +1105,8 @@ function tryScanTicket(){
           if((auth.qh||[]).indexOf(h)>=0){
             $('u-name').textContent=pay.n||'';
             $('u-plate').textContent=pay.p||'';
-            session={role:'user'};
+            $('u-qr-img').removeAttribute('src'); // 保安扫码场景不展示二维码，且清残留
+            session={role:'user', via:'scan'};
             showView('user');
             ok=true;
           }
