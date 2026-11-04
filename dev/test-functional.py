@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.6.4'
+VERSION = 'v0.7.0'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -207,7 +207,9 @@ try:
     ok('A9 搜索过滤', txt('row-count') == '匹配 1 / 3 人', txt('row-count'))
     set_input('search-box', '')
     ok('A9 dirty 提示', jsx("return document.getElementById('save-bar').classList.contains('show')"))
-    ok('A9 dirty时二维码列头警示', '未保存，扫码无效' in (jsx("return document.querySelector('th.qr').textContent") or ''))
+    ok('A9 dirty时密码设置右侧红色未保存标签',
+       jsx("return document.getElementById('dirty-badge').classList.contains('show')") is True and
+       jsx("var s=document.getElementById('btn-set').getBoundingClientRect(); var b=document.getElementById('dirty-badge').getBoundingClientRect(); return b.left>=s.right-2") is True)
 
     click('btn-set')
     set_input('set-unified', 'shdgjy2026ok')
@@ -227,7 +229,7 @@ try:
     ok('A10 服务器数据为密文格式', st == 200 and j and j.get('ok') and j['data'].get('fmt') == 'H1')
     ok('A10 dirty 清除+时间更新', jsx("return window.__t.state()").get('dirty') is False and
        '数据更新时间 20' in txt('data-time'), txt('data-time'))
-    ok('A10 保存后列头警示消失', (jsx("return document.querySelector('th.qr').textContent") or '')=='二维码')
+    ok('A10 保存后未保存标签消失', jsx("return document.getElementById('dirty-badge').classList.contains('show')") is False)
     shot('a10-admin-online.png')
 
     # 跨设备一致性：刷新页面（模拟另一台设备），数据来自服务器
@@ -443,6 +445,37 @@ try:
             "var r=[d.getElementById('li-user'),d.getElementById('btn-login')].map(function(e){var b=e.getBoundingClientRect();return [Math.round(b.left),Math.round(b.right),Math.round(b.width)]});"
             "return r")
     ok('D1 登录框适配390px', m and all(row[1] <= 391 for row in m) and m[0][2] > 200, str(m))
+    # D2-D5 管理页 390px：表格无横滚/操作列堆叠/保存按钮醒目
+    jsx("var d=document.getElementById('f').contentWindow.document;"
+        "d.getElementById('li-user').value='user';d.getElementById('li-pass').value='newadmin77';"
+        "d.getElementById('btn-login').click(); return 1")
+    time.sleep(4.5)
+    # 制造 dirty：新增一个用户
+    jsx("var d=document.getElementById('f').contentWindow.document;"
+        "d.getElementById('btn-add').click();"
+        "d.getElementById('f-user').value='d390x';"
+        "d.getElementById('f-name').value='窄屏';"
+        "d.getElementById('f-plate').value='沪D00390';"
+        "d.getElementById('btn-edit-ok').click(); return 1")
+    time.sleep(0.6)
+    m2 = jsx("var d=document.getElementById('f').contentWindow.document;"
+             "var w=d.querySelector('.table-wrap'); return [w.scrollWidth, w.clientWidth, d.getElementById('tbody').rows.length]")
+    ok('D2 390px表格无横滚', m2 and m2[0] <= m2[1] + 1 and m2[2] >= 3, str(m2))  # 服务器2用户+新增1=3
+    m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
+             "var bts=d.querySelector('#tbody tr .op-stack').children;"
+             "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"
+             "return [Math.round(a.left), Math.round(b.left), Math.round(b.top-a.bottom)]")
+    ok('D3 编辑/删除垂直堆叠+间距', m3 and abs(m3[0]-m3[1]) <= 2 and m3[2] >= 4, str(m3))
+    m4 = jsx("var d=document.getElementById('f').contentWindow.document;"
+             "var s=d.getElementById('btn-save').getBoundingClientRect();"
+             "var cs=getComputedStyle(d.getElementById('btn-save'));"
+             "return [Math.round(s.height), cs.fontWeight, cs.fontSize, d.getElementById('save-bar').classList.contains('show')]")
+    ok('D4 保存按钮醒目(≥40px/粗体/dirty显示)', m4 and m4[0] >= 40 and m4[1] in ('700','bold') and m4[3] is True, str(m4))
+    m5 = jsx("var d=document.getElementById('f').contentWindow.document;"
+             "var d2=d.getElementById('dirty-badge').getBoundingClientRect();"
+             "var s=d.getElementById('btn-set').getBoundingClientRect();"
+             "return [Math.round(d2.left), Math.round(s.right), d.getElementById('dirty-badge').classList.contains('show')]")
+    ok('D5 390px未保存标签在密码设置右侧', m5 and m5[0] >= m5[1] - 2 and m5[2] is True, str(m5))
 
 except Exception:
     import traceback

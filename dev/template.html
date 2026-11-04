@@ -58,12 +58,17 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 #search-box{flex:1;min-width:180px;height:40px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:15px;background:#fffdf9}
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:560px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{padding:8px 4px;font-size:13px;word-break:break-word;vertical-align:middle}
+col.c-user{width:24%}col.c-name{width:15%}col.c-plate{width:23%}col.c-qr{width:18%}col.c-op{width:20%}
+td.plate-cell{white-space:nowrap}
 th{font-size:13px;color:#8a8378;text-align:left;padding:10px 14px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
 td{padding:10px 14px;border-bottom:1px solid #f0e9dd;font-size:14.5px}
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
-th.op,td.op{text-align:right;white-space:nowrap}
+th.op,td.op{text-align:center;white-space:nowrap}
+.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:stretch}
+.row-btn{min-width:56px;padding:6px 8px}
 .row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#b03a2e}
@@ -72,7 +77,10 @@ th.op,td.op{text-align:right;white-space:nowrap}
 #save-bar{position:fixed;left:0;right:0;bottom:0;background:#4a4238;color:#f6f1ea;display:none;align-items:center;justify-content:center;gap:18px;padding:10px 16px;z-index:60}
 #save-bar.show{display:flex}
 #save-bar span{font-size:14px}
-#save-bar .btn{height:36px}
+#save-bar .btn{height:44px;padding:0 30px;font-size:16px;font-weight:700;background:#b3653f;border-color:#b3653f;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.35);animation:pulse-save 2.2s ease-in-out infinite}
+#save-bar .btn:hover{background:#9e5533}
+@keyframes pulse-save{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+#save-bar{box-shadow:0 -4px 18px rgba(0,0,0,.22)}
 
 /* 弹窗 */
 .modal{position:fixed;inset:0;background:rgba(58,48,36,.45);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
@@ -82,7 +90,11 @@ th.op,td.op{text-align:right;white-space:nowrap}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 /* 二维码列与放大浮窗 */
 td.qr-cell{white-space:nowrap}
-.qr-thumb{display:block;width:56px;height:56px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
+td.plate-cell{white-space:nowrap}
+.set-group{display:inline-flex;align-items:center;gap:6px}
+.dirty-badge{display:none;color:#b03a2e;font-size:13px;font-weight:600;white-space:nowrap}
+.dirty-badge.show{display:inline}
+.qr-thumb{display:block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
@@ -159,10 +171,11 @@ td.qr-cell{white-space:nowrap}
       <button id="btn-add" class="btn">添加用户</button>
       <button id="btn-import" class="btn subtle">批量导入</button>
       <button id="btn-csv" class="btn subtle">导出CSV</button>
-      <button id="btn-set" class="btn subtle">密码设置</button>
+      <span class="set-group"><button id="btn-set" class="btn subtle">密码设置</button><span id="dirty-badge" class="dirty-badge">● 未保存</span></span>
     </div>
     <div class="table-wrap">
       <table>
+        <colgroup><col class="c-user"><col class="c-name"><col class="c-plate"><col class="c-qr"><col class="c-op"></colgroup>
         <thead><tr><th>用户名</th><th>姓名</th><th>车牌号</th><th class="qr">二维码</th><th class="op">操作</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -652,8 +665,8 @@ function markDirty(){
 }
 function updateSaveBar(){
   $('save-bar').classList.toggle('show', !!(state&&state.dirty));
-  var th=document.querySelector('th.qr');
-  if(th) th.textContent=(state&&state.dirty)?'二维码（未保存，扫码无效）':'二维码';
+  var db=$('dirty-badge');
+  if(db) db.classList.toggle('show', !!(state&&state.dirty));
 }
 function fmtTime(iso){
   if(!iso) return '—';
@@ -723,8 +736,9 @@ function renderTable(){
   tb.textContent='';
   list.forEach(function(r){
     var tr=document.createElement('tr');
-    [r.u, r.n, r.p].forEach(function(val){
+    [r.u, r.n, r.p].forEach(function(val, idx){
       var td=document.createElement('td');
+      if(idx===2) td.className='plate-cell';
       td.textContent=val;
       tr.appendChild(td);
     });
@@ -732,19 +746,22 @@ function renderTable(){
     tdQ.className='qr-cell';
     var cv=document.createElement('canvas');
     cv.className='qr-thumb'; cv.title='点击放大';
-    drawQr(cv, ticketUrl(r), 56);
+    drawQr(cv, ticketUrl(r), 48);
     cv.addEventListener('click', function(){ openQrBig(r); });
     tdQ.appendChild(cv);
     tr.appendChild(tdQ);
     var tdOp=document.createElement('td');
     tdOp.className='op';
+    var opWrap=document.createElement('div');
+    opWrap.className='op-stack';
     var bE=document.createElement('button');
     bE.type='button'; bE.className='row-btn'; bE.textContent='编辑';
     bE.addEventListener('click', function(){ openEdit(r.u); });
     var bD=document.createElement('button');
     bD.type='button'; bD.className='row-btn del'; bD.textContent='删除';
     bD.addEventListener('click', function(){ askDelete(r.u); });
-    tdOp.appendChild(bE); tdOp.appendChild(bD);
+    opWrap.appendChild(bE); opWrap.appendChild(bD);
+    tdOp.appendChild(opWrap);
     tr.appendChild(tdOp);
     tb.appendChild(tr);
   });
