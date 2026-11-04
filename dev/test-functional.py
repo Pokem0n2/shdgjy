@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.7.0'
+VERSION = 'v0.8.0'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -394,7 +394,43 @@ try:
        (jsx("return document.getElementById('imp-result').textContent") or '') == '' and
        jsx("return document.getElementById('imp-replace').checked") is False)
     jsx("document.querySelector('#modal-import [data-close]').click(); return null"); time.sleep(0.3)
-    click('btn-logout-a'); time.sleep(0.4)
+    click('btn-logout-a'); time.sleep(0.3)
+    if jsx("return document.getElementById('modal-confirm').classList.contains('open')") is True:
+        click('btn-confirm-ok')  # dirty 退出确认（丢弃未保存导入）
+    time.sleep(0.5)
+
+    # Q9 混用分隔符（人工录入场景：半角/全角逗号、空格、顿号任意混用；行间不一致）
+    r, _ = do_login('user', 'newadmin77')
+    ok('Q9 管理员登录', r == 'admin', r)
+    _n0 = int(txt('row-count').split()[1])
+    click('btn-import'); time.sleep(0.3)
+    ok('Q9diag 导入框已打开', jsx("return document.getElementById('modal-import').classList.contains('open')") is True)
+    _mix = ('用户名,姓名,车牌号' + chr(10)
+            + 'mix1，张三,沪Z90001' + chr(10)
+            + 'mix2、李四 沪Z90002' + chr(10)
+            + 'mix3 王五、沪Z 90003')
+    _len = jsx("document.getElementById('imp-text').value=" + json.dumps(_mix) + "; return document.getElementById('imp-text').value.length")
+    ok('Q9diag 粘贴写入', _len == len(_mix), repr(_len))
+    jsx("var e=document.getElementById('imp-text'); e.dispatchEvent(new Event('input',{bubbles:true})); return 1")
+    ok('Q9 预览识别3条+表头1', '已识别 3 条' in (jsx("return document.getElementById('imp-preview').textContent") or ''),
+       jsx("return document.getElementById('imp-preview').textContent"))
+    print('  [Q9现场] view-admin=', jsx("return !document.getElementById('view-admin').classList.contains('hidden')"),
+          '| imp-result=', jsx("return document.getElementById('imp-result').textContent"),
+          '| toast=', jsx("return document.getElementById('toast').textContent"),
+          '| row-count=', txt('row-count'))
+    click('btn-imp-ok'); time.sleep(0.6)
+    print('  [Q9n0] _n0=', repr(_n0), '| row-count repr=', repr(txt('row-count')), '| 计算=', repr(int(txt('row-count').split()[1])), '期望', _n0+3)
+    ok('Q9 混用分隔符导入3人(表头已跳过/坏行已拒)', int(txt('row-count').split()[1]) == _n0 + 3, txt('row-count'))
+    _row = jsx("return [].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[0].textContent==='mix3'})[0].cells[2].textContent")
+    ok('Q9 车牌内空格自动拼合', _row == '沪Z90003', repr(_row))
+    ok('Q9 结果含表头计数', '表头 1' in (jsx("return document.getElementById('imp-result').textContent") or ''),
+       jsx("return document.getElementById('imp-result').textContent"))
+    time.sleep(4.2)
+    click('btn-logout-a'); time.sleep(0.3)
+    if jsx("return document.getElementById('modal-confirm').classList.contains('open')") is True:
+        click('btn-confirm-ok')
+    time.sleep(0.5)
+    ok('Q9 已退出到登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
 
     # ============ 阶段 B：离线降级（无 PHP 服务器）============
     print('== 阶段B：离线降级 ==')

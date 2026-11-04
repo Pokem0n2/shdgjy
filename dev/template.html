@@ -207,7 +207,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-import" class="modal">
   <div class="modal-box">
     <h3>批量导入</h3>
-    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（可从 Excel 直接复制，制表符分隔同样有效）"></textarea>
+    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（逗号、空格、顿号、制表符分隔均可，同一批内可混用）"></textarea>
     <label class="checkline"><input type="checkbox" id="imp-replace">导入前清空现有用户</label>
     <span id="imp-preview" class="muted"></span>
     <span id="imp-result" class="muted"></span>
@@ -829,8 +829,8 @@ function parseImport(text){
   for(var i=0;i<lines.length;i++){
     var line=lines[i].trim();
     if(!line) continue;
-    if(/用户名|姓名|车牌/.test(line)){ header++; continue; }
-    var parts=line.split(/[\t,，]+/).map(function(s){ return s.trim(); });
+    var parts=line.split(/[\s,，、]+/).map(function(s){ return s.trim(); }); // 半角/全角逗号、顿号、空格、制表符任意混用
+    if(parts.length>=3 && parts[0]==='用户名' && parts[1]==='姓名'){ header++; continue; } // 表头=首列用户名次列姓名（防止数据值含关键词被误杀）
     if(parts.length<3){ bad++; continue; }
     var u=parts[0], n=parts[1], p=parts.slice(2).join('');
     if(!u||!n||!p||u.length>32||n.length>32||p.length>16||u===ADMIN_USER){ bad++; continue; }

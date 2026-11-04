@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.7.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.8.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -186,7 +186,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.7.0</footer>
+<footer>shdgjy v0.8.0</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -207,7 +207,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-import" class="modal">
   <div class="modal-box">
     <h3>批量导入</h3>
-    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（可从 Excel 直接复制，制表符分隔同样有效）"></textarea>
+    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（逗号、空格、顿号、制表符分隔均可，同一批内可混用）"></textarea>
     <label class="checkline"><input type="checkbox" id="imp-replace">导入前清空现有用户</label>
     <span id="imp-preview" class="muted"></span>
     <span id="imp-result" class="muted"></span>
@@ -268,7 +268,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"fe553a524db2195bfcd8dfa7010d5a07","sU":"1de8ecc2de470818f79a9e8907b13fe9","sW":"f8a6dc6c90d119325531b3bcb30f9a4e","aV":"c5da7dad70bb0401dcce9e39c30d569a9779faf03144eb15839c877e290521a9","uV":"c4c75f2c1c1a273109b566aedf2ae3238b996836e4289416ed815ff4416ab033","e1":"0RFjixEkw9MpYm47UQionzkn4lUhtnMArI63qKXmgVtB1pgO2rLqPZP96W1i2WAjRF+pfqdkms2gxYstxMNAM1RF1xZzznqFAIMOXQRD4FZ4xsABP2lMje0AcENc0rV2R5FYtVodIUnDovgbLPzOUrhDr2gI4LyyGpH82e1RpQ==","e2":"q5v0cwwrc0nwYLaso5uy80cSApIzpgDSfMEZramwQFQbbtLPtPj/+YKCbtloiAj1oyOhA7MKb1k2QsPp6q8dIShUtEatvQ1X4B9TBqGGPGIb5QqYne322mOZxC6izfxAnbQFSgxH68RmjyljeaIbBEFyhSGz7Q5kkkLGP5uhjg=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"aff65de0d95d9b70080ab7d894b6cf69","sU":"098dab3f34a24d28112f2374857eaba9","sW":"93ffccfa7ad635deb4667e1811ae769d","aV":"0ef5e3c754ed0c8c241d6f5cd1146c96c9e0fd250654f7188c0edb05f65f8ea3","uV":"3fabdba222847a7c41f9aeed3b6d66527b47e01f091dc21bcc1ed392fb75695f","e1":"3spbKmr6Zlhe8TE6YpqdLB8wn7X1TVg3pzQij4ox8urtegZ/jiJ+uvaf+HQmITA63xyAR3gHbNNCJexr7B4KzYQY1hPfRNZkGFkb+B99uzAtoviIuIxdo5873/D/j8REA4jlh65O57ptP88rkGcbybujynDa30iZSqtbiwHG+g==","e2":"vMotb0iEHt9K/CuUAD69oS0RAP5rkq52YVdvh/1BLIF2QPN3W4gYnTjFH/LKY639KzxZrnZSp/EaR5tTGNtA9rVxtQk6yxv1w/tla1O+3xbTzVhuALlDBMTQh2rd1dum6VJMmwhFWnrNPR86tcVHiHt8KX4g+ymGAN6WiaAIAw=="}</script>
 <script>
 (function(){
 'use strict';
@@ -518,7 +518,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.7.0';
+var APP_VERSION='0.8.0';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -829,8 +829,8 @@ function parseImport(text){
   for(var i=0;i<lines.length;i++){
     var line=lines[i].trim();
     if(!line) continue;
-    if(/用户名|姓名|车牌/.test(line)){ header++; continue; }
-    var parts=line.split(/[\t,，]+/).map(function(s){ return s.trim(); });
+    var parts=line.split(/[\s,，、]+/).map(function(s){ return s.trim(); }); // 半角/全角逗号、顿号、空格、制表符任意混用
+    if(parts.length>=3 && parts[0]==='用户名' && parts[1]==='姓名'){ header++; continue; } // 表头=首列用户名次列姓名（防止数据值含关键词被误杀）
     if(parts.length<3){ bad++; continue; }
     var u=parts[0], n=parts[1], p=parts.slice(2).join('');
     if(!u||!n||!p||u.length>32||n.length>32||p.length>16||u===ADMIN_USER){ bad++; continue; }
