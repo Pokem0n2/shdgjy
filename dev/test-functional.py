@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.6.3'
+VERSION = 'v0.6.4'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -369,6 +369,30 @@ try:
     _t = jsx("return window.__t.qTicket('chen1')")
     ok('Q7 用户页二维码可实扫解码', any(_uq2(x).startswith(f'{BASE_ON}/shdgjy.html#q=') for x in z2), str(z2)[:60])
     click('btn-logout-u'); time.sleep(0.4)
+
+    # Q8 批量导入 UI 流程（用户实报 bug 回归：确认不关闭/内容残留）
+    r, _ = do_login('user', 'newadmin77')
+    ok('Q8 管理员登录', r == 'admin', r)
+    _n0 = int(txt('row-count').split()[1])
+    click('btn-import'); time.sleep(0.3)
+    ok('Q8 打开导入框', jsx("return document.getElementById('modal-import').classList.contains('open')") is True)
+    _imp = 'aaa,测试甲,沪Z11111' + chr(10) + 'bbb,测试乙,沪Z22222'
+    _setr = jsx("document.getElementById('imp-text').value=" + json.dumps(_imp) + "; return document.getElementById('imp-text').value.length")
+    ok('Q8 粘贴两行数据写入', _setr == 31, repr(_setr))
+    click('btn-imp-ok'); time.sleep(0.8)
+    _closed = jsx("return !document.getElementById('modal-import').classList.contains('open')")
+    ok('Q8 确认导入后弹窗自动关闭', _closed is True)
+    print('  [Q8现场] imp-result=', jsx("return document.getElementById('imp-result').textContent"), '| toast=', jsx("return document.getElementById('toast').textContent"))
+    ok('Q8 导入结果 toast', '新增 2 人' in (jsx("return document.getElementById('toast').textContent") or ''))
+    ok('Q8 表格行数+2', int(txt('row-count').split()[1]) == _n0 + 2, txt('row-count'))
+    time.sleep(4.2)
+    click('btn-import'); time.sleep(0.3)
+    ok('Q8 重开导入框无残留',
+       (jsx("return document.getElementById('imp-text').value") or '') == '' and
+       (jsx("return document.getElementById('imp-result').textContent") or '') == '' and
+       jsx("return document.getElementById('imp-replace').checked") is False)
+    jsx("document.querySelector('#modal-import [data-close]').click(); return null"); time.sleep(0.3)
+    click('btn-logout-a'); time.sleep(0.4)
 
     # ============ 阶段 B：离线降级（无 PHP 服务器）============
     print('== 阶段B：离线降级 ==')

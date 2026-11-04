@@ -845,8 +845,11 @@ function applyImport(){
   });
   markDirty();
   renderTable();
-  resEl.textContent='导入完成：新增 '+added+' 人，跳过重复 '+dup+' 人'
+  var msg='导入完成：新增 '+added+' 人，跳过重复 '+dup+' 人'
     +(r.bad?'，无效 '+r.bad+' 行':'')+(r.header?'，表头 '+r.header+' 行':'');
+  resEl.textContent=msg;
+  closeModal('modal-import');
+  toast(msg, 4000);
 }
 
 // ---------- CSV 导出 ----------
@@ -1042,7 +1045,8 @@ function boot(){
   $('btn-add').addEventListener('click', openAdd);
   $('btn-edit-ok').addEventListener('click', applyEdit);
   $('btn-import').addEventListener('click', function(){
-    $('imp-result').textContent=''; $('imp-preview').textContent='';
+    $('imp-text').value=''; $('imp-result').textContent=''; $('imp-preview').textContent='';
+    $('imp-replace').checked=false;
     openModal('modal-import');
     $('imp-text').focus();
   });
