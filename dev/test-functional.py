@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.8.0'
+VERSION = 'v0.8.1'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -496,6 +496,12 @@ try:
     time.sleep(0.6)
     m2 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var w=d.querySelector('.table-wrap'); return [w.scrollWidth, w.clientWidth, d.getElementById('tbody').rows.length]")
+    _cols = jsx("var d=document.getElementById('f').contentWindow.document;"
+                "return [].slice.call(d.querySelectorAll('thead th')).map(function(th){return th.getBoundingClientRect().width.toFixed(0)}).join('+')")
+    print('  [D2列宽]', _cols, '| 行内溢出元素:', jsx("var d=document.getElementById('f').contentWindow.document;"
+        "var w=d.querySelector('.table-wrap'); var out=[];"
+        "d.querySelectorAll('#tbody tr td').forEach(function(td){var b=td.getBoundingClientRect(); if(b.width>w.clientWidth) out.push(td.className+':'+b.width.toFixed(0))});"
+        "return out.join(',')"))
     ok('D2 390px表格无横滚', m2 and m2[0] <= m2[1] + 1 and m2[2] >= 3, str(m2))  # 服务器2用户+新增1=3
     m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var bts=d.querySelector('#tbody tr .op-stack').children;"

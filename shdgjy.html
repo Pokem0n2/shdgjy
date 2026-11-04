@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.8.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.8.1 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -59,17 +59,17 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:8px 4px;font-size:13px;word-break:break-word;vertical-align:middle}
-col.c-user{width:24%}col.c-name{width:15%}col.c-plate{width:23%}col.c-qr{width:18%}col.c-op{width:20%}
+th,td{font-size:13px;word-break:break-word;vertical-align:middle}
+col.c-user{width:28%}col.c-name{width:17%}col.c-plate{width:20%}col.c-qr{width:17%}col.c-op{width:18%}
 td.plate-cell{white-space:nowrap}
-th{font-size:13px;color:#8a8378;text-align:left;padding:10px 14px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
-td{padding:10px 14px;border-bottom:1px solid #f0e9dd;font-size:14.5px}
+th{color:#8a8378;text-align:left;padding:9px 6px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
+td{padding:9px 6px;border-bottom:1px solid #f0e9dd}
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
-.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:stretch}
-.row-btn{min-width:56px;padding:6px 8px}
-.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
+td.qr-cell{text-align:center}
+.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
+.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#b03a2e}
 .empty{padding:34px 0;text-align:center}
@@ -94,7 +94,7 @@ td.plate-cell{white-space:nowrap}
 .set-group{display:inline-flex;align-items:center;gap:6px}
 .dirty-badge{display:none;color:#b03a2e;font-size:13px;font-weight:600;white-space:nowrap}
 .dirty-badge.show{display:inline}
-.qr-thumb{display:block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
+.qr-thumb{display:inline-block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
@@ -186,7 +186,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.8.0</footer>
+<footer>shdgjy v0.8.1</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -268,7 +268,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"aff65de0d95d9b70080ab7d894b6cf69","sU":"098dab3f34a24d28112f2374857eaba9","sW":"93ffccfa7ad635deb4667e1811ae769d","aV":"0ef5e3c754ed0c8c241d6f5cd1146c96c9e0fd250654f7188c0edb05f65f8ea3","uV":"3fabdba222847a7c41f9aeed3b6d66527b47e01f091dc21bcc1ed392fb75695f","e1":"3spbKmr6Zlhe8TE6YpqdLB8wn7X1TVg3pzQij4ox8urtegZ/jiJ+uvaf+HQmITA63xyAR3gHbNNCJexr7B4KzYQY1hPfRNZkGFkb+B99uzAtoviIuIxdo5873/D/j8REA4jlh65O57ptP88rkGcbybujynDa30iZSqtbiwHG+g==","e2":"vMotb0iEHt9K/CuUAD69oS0RAP5rkq52YVdvh/1BLIF2QPN3W4gYnTjFH/LKY639KzxZrnZSp/EaR5tTGNtA9rVxtQk6yxv1w/tla1O+3xbTzVhuALlDBMTQh2rd1dum6VJMmwhFWnrNPR86tcVHiHt8KX4g+ymGAN6WiaAIAw=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"9253078ec349852363450dadc8b96efa","sU":"329a84c65996e2da57650c44d2e8dd16","sW":"fe07c7b3ac5f5bd91a351af556c852e8","aV":"40f9af1fcc1a1e6b0d7cb66641932e552466fb1964186fd5ae1beb4c16836c32","uV":"a89656dce4ab26865a09efcad2a50242c39e8150e36a53140d1c48f3e916ef64","e1":"PU1DT6jF9vc58CY+I/ToEwvGByCy7fZ92r//2gQrGd154oNYXdoHt3zCZ9ul7/Qh4/ubVoRYAh+v5/qxiPWglt2f+IpfdkTGbgaJaf+HPh1ARh697l4PmybG/rNmPueCfVrnxb0yMpDcnZkMfkojLMwUrWy6vVW011ET9PSyuA==","e2":"voY3MFs2cjZBR+DaY7o6KVXIMRUax+BA5vkIUkHGiGXQFIfN5Dbn75VFNi+4iE16uZHLF5hXXAD+sUzWTUfaULQ8vh/UBLaC8KrOBO9km8VCAcvOWvyaRgGCj8/aFB2U87HgE8sZcGnG0pSrXI1Ie+t09jzTPUGWjdhVdwsUXg=="}</script>
 <script>
 (function(){
 'use strict';
@@ -518,7 +518,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.8.0';
+var APP_VERSION='0.8.1';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出

@@ -59,17 +59,17 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:8px 4px;font-size:13px;word-break:break-word;vertical-align:middle}
-col.c-user{width:24%}col.c-name{width:15%}col.c-plate{width:23%}col.c-qr{width:18%}col.c-op{width:20%}
+th,td{font-size:13px;word-break:break-word;vertical-align:middle}
+col.c-user{width:28%}col.c-name{width:17%}col.c-plate{width:20%}col.c-qr{width:17%}col.c-op{width:18%}
 td.plate-cell{white-space:nowrap}
-th{font-size:13px;color:#8a8378;text-align:left;padding:10px 14px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
-td{padding:10px 14px;border-bottom:1px solid #f0e9dd;font-size:14.5px}
+th{color:#8a8378;text-align:left;padding:9px 6px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
+td{padding:9px 6px;border-bottom:1px solid #f0e9dd}
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
-.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:stretch}
-.row-btn{min-width:56px;padding:6px 8px}
-.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
+td.qr-cell{text-align:center}
+.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
+.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#b03a2e}
 .empty{padding:34px 0;text-align:center}
@@ -94,7 +94,7 @@ td.plate-cell{white-space:nowrap}
 .set-group{display:inline-flex;align-items:center;gap:6px}
 .dirty-badge{display:none;color:#b03a2e;font-size:13px;font-weight:600;white-space:nowrap}
 .dirty-badge.show{display:inline}
-.qr-thumb{display:block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
+.qr-thumb{display:inline-block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
