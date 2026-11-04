@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.6.1 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.6.2 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -172,7 +172,7 @@ td.qr-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.6.1</footer>
+<footer>shdgjy v0.6.2</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -254,7 +254,7 @@ td.qr-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"fe929ee12b675d5c8f3618d10e43bec0","sU":"643afea955f388ce48aec9b492541e30","sW":"2486471b4817d9fba7fdf135b1b80b9c","aV":"fbd0945ce800e6eb04db79f4f3fb6fd4afa30427b1307e385a5ad4f0f50e4945","uV":"d1f2e67a332ac720efadc4b4de5b1976ad3ccaba05e39ebfaa3792cdf45fd105","e1":"XDVbP9KXlGAABsTBcyXdglBuVW/dBHioq68LOywn6++k7TVw7jNHh2r8dTrZTTqiQ9CsQDxSFVi4fGcBfMccoBGHdsiYJfw6mdUAHnfSqbx+A21DuTa10rwCCQ42G1z2uiLj63s2GSJcUOhWc1NBFXKW7wGyIov2LlRRzsacyA==","e2":"BcYFnDVv6s4oipJCAF68ApHmbGbKI7ek+p+rLkMVvnM8AhWw/eHY0CgQ77NiDcfv5EtaLo3SWJRjr2zmZWYzVgCQMXdeeFyRUrGRq56vO5Gyo3dhfeKu3ee+aUQ67e1+ydsJ/WJCAGXuyWL1VcupQnzaKBpKtw1abaQbh7GY0A=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"5389c20219cc0d9deabe7c25eabb4e30","sU":"b44b1e10ef462e3672e45ded75c86dcd","sW":"b404e519bc1675eb5cd752d75f513501","aV":"9b036c5cf491cea446da071529bf2a8d23e620044de964063f7138437e0c1e96","uV":"5d3f3adac63d81fdc866cd7686418ba9bfe5578183cb92877fd3314778720bf2","e1":"O0RTdQoaY9PLbv4NjUddRW7eCrYg91e+C1yhCYcfhcHnrwr7tCTaiQWEqerqtFQX31eHlCkW7jshaQuXj1Uk6REx14blDcczV7i858Wz0kt65h2i+1ejj0U5lebmxoVrEYC5bCwz/cyMoovBaSmtBj8YqnzTzINurUY/+krxow==","e2":"oOb84I47J2Nkrz+J/t+kb6VtIgqQenFRt6oEJQz7XTwYI37hGORQxLhq6GMCvvNL7v5VH3mYfBaTPqRSYO2vOgWsRlFaUGS6LF11SPXCqEaay3eV6OgfH3rUbi4xI4gvi9x4wZ0Qn+htpYR+QPajKXZJEOdMKyLRkr513wQlCQ=="}</script>
 <script>
 (function(){
 'use strict';
@@ -504,7 +504,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.6.1';
+var APP_VERSION='0.6.2';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -566,12 +566,12 @@ function showView(name){
 
 // ---------- 轻提示 ----------
 var toastTimer=null;
-function toast(msg){
+function toast(msg, ms){
   var t=$('toast');
   t.textContent=msg;
   t.classList.add('show');
   if(toastTimer) clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2000);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, ms||2000);
 }
 
 // ---------- 登录 ----------
@@ -635,7 +635,7 @@ function enterAdmin(payload, adminPwd){
   if(!state.kq){
     state.kq=bytesToHex(randBytes(32)); // 二维码票据密钥：首次启用，随数据持久化
     state.dirty=true;
-    setTimeout(function(){ toast('二维码功能已启用，请点击保存生效'); }, 700);
+    setTimeout(function(){ toast('二维码功能已启用：请点击「保 存」，保存前扫码无效', 5000); }, 700);
   }
   $('data-time').textContent='数据更新时间 '+fmtTime(state.savedAt);
   $('search-box').value='';
@@ -650,6 +650,8 @@ function markDirty(){
 }
 function updateSaveBar(){
   $('save-bar').classList.toggle('show', !!(state&&state.dirty));
+  var th=document.querySelector('th.qr');
+  if(th) th.textContent=(state&&state.dirty)?'二维码（未保存，扫码无效）':'二维码';
 }
 function fmtTime(iso){
   if(!iso) return '—';

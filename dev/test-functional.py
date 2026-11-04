@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.6.1'
+VERSION = 'v0.6.2'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -207,6 +207,7 @@ try:
     ok('A9 搜索过滤', txt('row-count') == '匹配 1 / 3 人', txt('row-count'))
     set_input('search-box', '')
     ok('A9 dirty 提示', jsx("return document.getElementById('save-bar').classList.contains('show')"))
+    ok('A9 dirty时二维码列头警示', '未保存，扫码无效' in (jsx("return document.querySelector('th.qr').textContent") or ''))
 
     click('btn-set')
     set_input('set-unified', 'shdgjy2026ok')
@@ -226,6 +227,7 @@ try:
     ok('A10 服务器数据为密文格式', st == 200 and j and j.get('ok') and j['data'].get('fmt') == 'H1')
     ok('A10 dirty 清除+时间更新', jsx("return window.__t.state()").get('dirty') is False and
        '数据更新时间 20' in txt('data-time'), txt('data-time'))
+    ok('A10 保存后列头警示消失', (jsx("return document.querySelector('th.qr').textContent") or '')=='二维码')
     shot('a10-admin-online.png')
 
     # 跨设备一致性：刷新页面（模拟另一台设备），数据来自服务器

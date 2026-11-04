@@ -566,12 +566,12 @@ function showView(name){
 
 // ---------- 轻提示 ----------
 var toastTimer=null;
-function toast(msg){
+function toast(msg, ms){
   var t=$('toast');
   t.textContent=msg;
   t.classList.add('show');
   if(toastTimer) clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2000);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, ms||2000);
 }
 
 // ---------- 登录 ----------
@@ -635,7 +635,7 @@ function enterAdmin(payload, adminPwd){
   if(!state.kq){
     state.kq=bytesToHex(randBytes(32)); // 二维码票据密钥：首次启用，随数据持久化
     state.dirty=true;
-    setTimeout(function(){ toast('二维码功能已启用，请点击保存生效'); }, 700);
+    setTimeout(function(){ toast('二维码功能已启用：请点击「保 存」，保存前扫码无效', 5000); }, 700);
   }
   $('data-time').textContent='数据更新时间 '+fmtTime(state.savedAt);
   $('search-box').value='';
@@ -650,6 +650,8 @@ function markDirty(){
 }
 function updateSaveBar(){
   $('save-bar').classList.toggle('show', !!(state&&state.dirty));
+  var th=document.querySelector('th.qr');
+  if(th) th.textContent=(state&&state.dirty)?'二维码（未保存，扫码无效）':'二维码';
 }
 function fmtTime(iso){
   if(!iso) return '—';
