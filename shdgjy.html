@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.8.1 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.8.2 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -182,11 +182,11 @@ td.plate-cell{white-space:nowrap}
       <div id="empty-tip" class="muted empty hidden">暂无用户</div>
     </div>
     <div id="row-count" class="muted count"></div>
-    <div id="save-bar"><span>有未保存更改</span><button id="btn-save" class="btn">保存并生成文件</button></div>
+    <div id="save-bar"><span>有未保存更改</span><button id="btn-save" class="btn">保 存</button></div>
   </section>
 
 </main>
-<footer>shdgjy v0.8.1</footer>
+<footer>shdgjy v0.8.2</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -268,7 +268,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"9253078ec349852363450dadc8b96efa","sU":"329a84c65996e2da57650c44d2e8dd16","sW":"fe07c7b3ac5f5bd91a351af556c852e8","aV":"40f9af1fcc1a1e6b0d7cb66641932e552466fb1964186fd5ae1beb4c16836c32","uV":"a89656dce4ab26865a09efcad2a50242c39e8150e36a53140d1c48f3e916ef64","e1":"PU1DT6jF9vc58CY+I/ToEwvGByCy7fZ92r//2gQrGd154oNYXdoHt3zCZ9ul7/Qh4/ubVoRYAh+v5/qxiPWglt2f+IpfdkTGbgaJaf+HPh1ARh697l4PmybG/rNmPueCfVrnxb0yMpDcnZkMfkojLMwUrWy6vVW011ET9PSyuA==","e2":"voY3MFs2cjZBR+DaY7o6KVXIMRUax+BA5vkIUkHGiGXQFIfN5Dbn75VFNi+4iE16uZHLF5hXXAD+sUzWTUfaULQ8vh/UBLaC8KrOBO9km8VCAcvOWvyaRgGCj8/aFB2U87HgE8sZcGnG0pSrXI1Ie+t09jzTPUGWjdhVdwsUXg=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"4ea4c8bee99649e421d639ab69cbc4b7","sU":"be9092ef88231178929afa3950872880","sW":"74c2782500b6c049420f5ad5d5db31fe","aV":"3aceacf8387ff4426ee04f772cd36da714d18f685c169135c972786cf13fa4c1","uV":"5aad1f0f3a355928b6c66c39f02a4249270db9c54f0a31a1c667284ff6ae302f","e1":"kWnJKj/qOsbxOZRZpwqQftsR8df8+CYGTnt9SCbJxSnxa0yZV9PqvxqWueoOLLFMb10E7I7xqrG6Z9hy92Nm8w8AQO+Z7SmZyco+hDkm3DOhwQTtg+RsjMRZ5skla1pT8IecZu7jNkOGjyjlDzsZ25pQ4rgVpBaBMixjlDaCFg==","e2":"z4TCbfJ7OPZQQQIfjU9+6jxQMOq6dh/yHJzMPvmp8IfzVTjdkGXdKv2WE7TXqC8tfypGPU9pe9BGfKZnqEMSeCb9c2ILFcmvf5XcLWE+kMDVqAHtP+N9n5Jw8McUJVRimBCrdcR+sVR2yGKu/D35V27ROAmYUPU/IZMf04FwVg=="}</script>
 <script>
 (function(){
 'use strict';
@@ -518,7 +518,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.8.1';
+var APP_VERSION='0.8.2';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
