@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         web = new WebView(this);
+        web.setBackgroundColor(0xFFF6F1EA); // 暖色背景：冷启动/断网页切换时消除白屏闪烁
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE); // 服务器页面迭代频繁，每次拉最新防旧缓存
