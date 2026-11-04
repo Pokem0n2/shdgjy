@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.8.2'
+VERSION = 'v0.8.3'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
