@@ -15,10 +15,12 @@ import android.util.Base64;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.URLUtil;
+import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
+import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
@@ -32,6 +34,7 @@ import java.io.OutputStream;
  * - 断网显示本地错误页，可重试
  * - 返回键：无历史时双击退出
  * - blob:/http: 下载（CSV 导出、离线生成文件）落 Downloads
+ * - 长按图片保存二维码；WebView 禁缓存保证页面随服务器即时更新
  */
 public class MainActivity extends Activity {
 
@@ -47,6 +50,21 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
+        web.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE); // 服务器页面迭代频繁，每次拉最新防旧缓存
+        web.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                // 长按图片（用户登录页"我的二维码"）→ 保存到 Downloads
+                WebView.HitTestResult r = web.getHitTestResult();
+                String src = (r != null) ? r.getExtra() : null;
+                if (r != null && r.getType() == WebView.HitTestResult.IMAGE_TYPE
+                        && src != null && src.startsWith("data:image/")) {
+                    String name = "shdgjy-qr-" + System.currentTimeMillis() + ".png";
+                    saveDataUrl(src, name, "image/png");
+                    return true;
+                }
+                return false;
+            }
+        });
         web.setWebViewClient(new SiteClient());
         web.setWebChromeClient(new WebChromeClient());
         web.setDownloadListener(new SiteDownloadListener());
