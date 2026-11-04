@@ -88,6 +88,7 @@ td.qr-cell{white-space:nowrap}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
 .u-qr-wrap{margin:18px auto 4px;text-align:center}
 #u-qr-img{display:inline-block;width:220px;height:220px;max-width:70vw;max-height:70vw;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:8px;background:#fff}
+#u-qr-img:not([src]){display:none}
 #qr-big-img{display:block;width:300px;height:300px;max-width:76vw;max-height:76vw}
 #imp-text{width:100%;height:150px;border:1px solid #ddd2c0;border-radius:8px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;background:#fff}
 #imp-text:focus{outline:none;border-color:#b3653f}
@@ -606,6 +607,7 @@ function doLogin(){
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
             session={role:'user'};
+            $('u-qr-wrap').style.display='';
             try{ renderSelfQr(found); }catch(e){}
             showView('user');
           }
@@ -672,6 +674,7 @@ function doLogout(msg){
   ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
   ['u-name','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
   var qi=$('u-qr-img'); if(qi) qi.removeAttribute('src'); // 防上一个用户的码残留
+  var qw=$('u-qr-wrap'); if(qw) qw.style.display='';
   showView('login');
   if(msg) toast(msg);
 }
@@ -1107,7 +1110,8 @@ function tryScanTicket(){
           if((auth.qh||[]).indexOf(h)>=0){
             $('u-name').textContent=pay.n||'';
             $('u-plate').textContent=pay.p||'';
-            $('u-qr-img').removeAttribute('src'); // 保安扫码场景不展示二维码，且清残留
+            $('u-qr-wrap').style.display='none'; // 保安扫码场景不展示二维码区块（img 空 src 会渲染 alt+坏图占位）
+            $('u-qr-img').removeAttribute('src');
             session={role:'user', via:'scan'};
             showView('user');
             ok=true;

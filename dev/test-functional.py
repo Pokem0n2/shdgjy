@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.6.2'
+VERSION = 'v0.6.3'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -307,7 +307,9 @@ try:
     _vu = jsx("return !document.getElementById('view-user').classList.contains('hidden')")
     ok('Q5 扫码直达核验通过页', _vu is True, f'conn={_mode} view-user={_vu} 用时{time.time()-t0:.1f}s')
     ok('Q5 扫码展示姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345', txt('u-name') + '/' + txt('u-plate'))
-    ok('Q5 扫码直达不展示二维码(保安场景)', not (jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''))
+    ok('Q5 扫码直达不展示二维码(保安场景)',
+       (jsx("return document.getElementById('u-qr-wrap').offsetParent") is None) and
+       not (jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''))
     shot('q5-scan-ok.png')
     click('btn-logout-u'); time.sleep(0.4)
     # 篡改票据 → 失败
@@ -351,6 +353,7 @@ try:
     ok('Q7 用户登录成功', r == 'user', r)
     _src = jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''
     ok('Q7 登录页展示自己的二维码图', _src.startswith('data:image/png'), _src[:30])
+    ok('Q7 登录场景二维码区块可见', jsx("return document.getElementById('u-qr-wrap').offsetParent") is not None)
     ok('Q7 二维码居中显示',
        jsx("var b=document.getElementById('u-qr-img').getBoundingClientRect(); var c=document.getElementById('u-qr-wrap').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-(c.left+c.right)/2)<10") is True and
        (jsx("return document.getElementById('u-qr-img').naturalWidth") or 0) >= 400)
