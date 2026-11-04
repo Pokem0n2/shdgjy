@@ -79,6 +79,24 @@ apk/build.sh 0.1.0 1   # versionName versionCode；产物 dist/shdgjy-v0.1.0.apk
 - 二维码生成库为 qrcode-generator v1.4.4（MIT，terser 压缩后内嵌，离线可用）
 - v0.6.1：普通用户登录成功页居中展示自己的二维码（点击放大、长按可保存图片，440px 位图保证打印清晰），管理员更新数据后通知用户自行登录取码；保安扫码直达页不展示二维码，退出登录清除上一用户残留
 
+## 双版本构建（重要：交付版 ≠ GitHub 版）
+
+- **GitHub 版**（仓库内 `shdgjy.html`，脱敏示例凭证）：`ADMIN_USER='user'`，构建密码 `admin/12345678`
+- **交付版**（发用户部署的生产凭证）：`ADMIN_USER='user'`，构建密码 `***REMOVED***/***REMOVED***`（若用户已在线上改密，线上数据仍用改后密码，交付版只是壳+离线兜底快照）
+
+```bash
+# 生产版构建三步（构建后务必还原，防止生产凭证进 git）：
+cp shdgjy.html /tmp/backup-santized.html
+sed -i "s/ADMIN_USER='user'/ADMIN_USER='user'/" dev/template.html
+node dev/build.js --admin-pwd ***REMOVED*** --user-pwd ***REMOVED*** --version <版本>
+cp shdgjy.html shdgjy-v<版本>.html   # 交付副本
+sed -i "s/ADMIN_USER='user'/ADMIN_USER='user'/" dev/template.html
+cp /tmp/backup-santized.html shdgjy.html   # 还原脱敏版
+git status   # 必须干净后再提交
+```
+
+教训实锤：v0.6.1 曾把脱敏版发给用户上传，ADMIN_USER='user' 导致 tww 走普通用户分支解不开 e1，管理员无法登录。
+
 ## 版本与命名
 
 - 仓库主文件始终为 `shdgjy.html`；对外交付副本命名为 `shdgjy-vX.Y.Z.html`，版本号同步出现在页脚。
