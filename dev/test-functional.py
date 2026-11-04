@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.5.0'
+VERSION = 'v0.6.0'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -156,7 +156,7 @@ try:
     goto(f'{BASE_ON}/shdgjy.html')
     ok('A1 连接模式 empty(服务器无数据)', wait_conn() == 'empty')
     ok('A1 版本号', VERSION in (jsx("return document.body.textContent") or ''))
-    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == '0.5.0')
+    ok('A1 应用无JS错误', jsx("return window.__t?window.__t.version:'undefined'") == VERSION.lstrip('v'))
     shot('a1-login.png')
 
     r, dt = do_login('chen1', 'wrongpass')
@@ -263,6 +263,85 @@ try:
     time.sleep(2.2)
     r, _ = do_login('user', 'newadmin77')
     ok('A15 新管理员密码生效', r == 'admin')
+
+    # ============ 阶段 Q：二维码（一人一码）============
+    print('== 阶段Q：二维码 ==')
+    import re as _re
+    st, j = http('GET', API_URL + '/')
+    d = (j or {}).get('data') or {}
+    ok('Q1 服务器信封含票据密钥kq', _re.fullmatch(r'[0-9a-f]{64}', d.get('kq', '')) is not None, str(d.get('kq'))[:20])
+    ok('Q1 qh用户哈希清单', isinstance(d.get('qh'), list) and len(d['qh']) == 3, str(d.get('qh'))[:60])
+    t_chen1 = jsx("return window.__t.qTicket('chen1')")
+    t_wangwu = jsx("return window.__t.qTicket('wangwu')")
+    ok('Q2 票据URL格式', bool(t_chen1) and '#q=' in t_chen1 and t_chen1.startswith('http'), str(t_chen1)[:60])
+    ok('Q2 一人一码(不同用户票据不同)', t_chen1 != t_wangwu)
+    n_cv = jsx("return document.querySelectorAll('#tbody canvas.qr-thumb').length")
+    w_cv = jsx("return (document.querySelector('#tbody canvas.qr-thumb')||{}).width||0")
+    ok('Q3 每行都有二维码画布', n_cv == 3 and w_cv >= 40, f'canvas数={n_cv} 宽={w_cv}')
+    jsx("document.querySelector('#tbody canvas.qr-thumb').click(); return null")
+    time.sleep(0.3)
+    ok('Q3 点击→放大浮窗居中显示',
+       jsx("return document.getElementById('modal-qr').classList.contains('open')") is True and
+       jsx("var b=document.getElementById('qr-big').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-window.innerWidth/2)<40") is True and
+       (jsx("return document.getElementById('qr-big').width") or 0) >= 200 and
+       '陈大山峰' in (jsx("return document.getElementById('qr-cap').textContent") or ''), '')
+    shot('q3-qr-big.png')
+    jsx("document.getElementById('modal-qr').click(); return null")
+    time.sleep(0.3)
+    ok('Q3 点空白关闭浮窗', jsx("return document.getElementById('modal-qr').classList.contains('open')") is False)
+    # zbar 解码：浮窗截图里的二维码应还原出票据URL
+    zr = subprocess.run(['zbarimg', '-q', '--raw', os.path.join(HERE, 'shots', 'q3-qr-big.png')],
+                        capture_output=True, text=True)
+    zout = [x for x in (zr.stdout or '').strip().splitlines() if x.strip()]
+    zurl = zout[0] if zout else ''
+    ok('Q4 浮窗二维码可被扫描解码出票据URL', zurl.startswith(f'{BASE_ON}/shdgjy.html#q=') and len(zurl) > 60, str(zout)[:80])
+    # 扫码核验：直接打开二维码里实际编码的URL（完全模拟微信扫码内容）
+    goto(zurl or t_chen1)
+    t0 = time.time(); _mode = None
+    while time.time() - t0 < 15:
+        _mode = _mode or wait_conn(0.5)
+        if jsx("return !document.getElementById('view-user').classList.contains('hidden')"): break
+        time.sleep(0.2)
+    _vu = jsx("return !document.getElementById('view-user').classList.contains('hidden')")
+    ok('Q5 扫码直达核验通过页', _vu is True, f'conn={_mode} view-user={_vu} 用时{time.time()-t0:.1f}s')
+    ok('Q5 扫码展示姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345', txt('u-name') + '/' + txt('u-plate'))
+    shot('q5-scan-ok.png')
+    click('btn-logout-u'); time.sleep(0.4)
+    # 篡改票据 → 失败
+    bad = t_chen1[:-6] + ('AAAAAA' if not t_chen1.endswith('AAAAAA') else 'BBBBBB')
+    goto(bad)
+    t0 = time.time(); _bfail = False
+    while time.time() - t0 < 15:
+        if '❌核验未通过' in (jsx("return document.getElementById('toast').textContent") or ''): _bfail = True; break
+        time.sleep(0.2)
+    ok('Q6 篡改票据→核验失败浮窗', _bfail and
+       jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True,
+       f'{time.time()-t0:.1f}s')
+    time.sleep(2.2)
+    # 删除用户 → 其旧票据失效
+    r, _ = do_login('user', 'newadmin77')
+    ok('Q6 管理员重登', r == 'admin')
+    jsx("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[0].textContent==='wangwu'})[0];"
+        "if(row){row.querySelector('.row-btn.del').click()} return row?1:0")
+    time.sleep(0.2)
+    click('btn-confirm-ok'); time.sleep(0.2)
+    click('btn-save')
+    okd = False
+    t0 = time.time()
+    while time.time() - t0 < 30:
+        if '已保存到服务器' in txt('toast'): okd = True; break
+        time.sleep(0.2)
+    ok('Q6 删除wangwu并保存', okd and txt('row-count') == '共 2 人', txt('row-count'))
+    click('btn-logout-a'); time.sleep(0.5)
+    goto(t_wangwu)
+    t0 = time.time(); _fail = False
+    while time.time() - t0 < 15:
+        if '❌核验未通过' in (jsx("return document.getElementById('toast').textContent") or ''): _fail = True; break
+        time.sleep(0.2)
+    ok('Q6 已删用户旧票据→核验失败', _fail and
+       jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True,
+       f'{time.time()-t0:.1f}s')
+    time.sleep(2.2)
 
     # ============ 阶段 B：离线降级（无 PHP 服务器）============
     print('== 阶段B：离线降级 ==')
