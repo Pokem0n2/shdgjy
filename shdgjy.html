@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.8.4 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.8.5 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -70,9 +70,9 @@ th.op,td.op{text-align:center;white-space:nowrap}
 td.qr-cell{text-align:center}
 td.qr-cell,td.op{padding-left:3px;padding-right:3px}
 .op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
-.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
+.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
 .row-btn:hover{background:#f3ece1}
-.row-btn.del{color:#b03a2e}
+.row-btn.del{color:#c62828;font-weight:400}
 .empty{padding:34px 0;text-align:center}
 .count{font-size:12.5px;margin-top:8px}
 #save-bar{position:fixed;left:0;right:0;bottom:0;background:#4a4238;color:#f6f1ea;display:none;align-items:center;justify-content:center;gap:18px;padding:10px 16px;z-index:60}
@@ -187,7 +187,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.8.4</footer>
+<footer>shdgjy v0.8.5</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -269,7 +269,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"b34872c68025eee04d652ad6ac7442d3","sU":"067ea17a60023cb90c8398f78c75f113","sW":"31e553c1371a524e22a91992a26ef645","aV":"a1dc06b0a4c46a3209643bd7d03795c59993ca54a835b551218836955c9d584d","uV":"53071ab6429d7680468d2bc605ace04e7376b6d151a7d50ebc355f1e600f095b","e1":"MIvd47Hm2+AhmGVX4vIqNwre1qFT3pRJg+ytsf8jF1cwGS+2OVvL2+vvzD0mxbQUpeB8AqOmg7GL7+mfqG7lko3Z4fKsaHxZZ30S9vKX9XEHIvnRXOMbWY0HhQNrozDxDCV2qDu03KlMz6sKIBvVt7gj3RoqSKUPyHldR6ZMvg==","e2":"FjvZngQbXq/pClmf8ab6vUYDU1UlaRR7LlTDEc2E/RxxBeS9kLp4KjPAj9nlGNsZClDALbcId5Ic0DdRm6XCuC/N36iXYQm2E214NNv2r5ENzMrr5Y5GLDydvm9vPvtHvm9/mCA2+TO450bhnRmfjOlLFMqS/ODDbca9O7WhIA=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"6ba236e3956b80b623eafb8c3ff659d2","sU":"6d0dc081a772d17fe933777276e89206","sW":"924106edaed772fe18e16c47e80bfe13","aV":"cf56a459769e37e14f3e2072d18d67f11fbd38883e3de2e703565238baa0afc7","uV":"95bb386fe04792f044b09f2fdc05c3df90c76d6e832539855241d3c838f9b89a","e1":"h7mCmtIybibbkfadMuH84DJESMb7PMy5H4/ODanfKJs5lGOtUL7OHfZfZdWmPmcN4oJSvMq3PjVpAAOAZU8WQGjcaA0UxxMZ2jdS5YEQ4iUQ3YuvJgzmvXRy7ovfUZhfWhkJQ9xJ0pXJwYA5nchEBWV6Qjh+3JHEWmjyR00VuQ==","e2":"9LaeZFPokbtWOqu2DW7q9VamBhGYvk65FzlNDir9rPI5GZ11EKpHA0qLaPsPzzt6diDY5Dt27YQOa+nspef4jLbaKUb4/IXuc/Ohum4AS4i27jbQxmc1FRRScVhkwbmpfcFDR8CjSJds3gzv3Vr31Pm3cKyhcUXHYmX8xzjxjA=="}</script>
 <script>
 (function(){
 'use strict';
@@ -519,7 +519,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.8.4';
+var APP_VERSION='0.8.5';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
