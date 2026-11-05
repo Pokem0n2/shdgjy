@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.8.5'
+VERSION = 'v0.9.0'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -84,7 +84,7 @@ def wait_login_result(timeout=25):
         err = txt('login-err')
         if err: return ('err:' + err, time.time() - t0)
         t = jsx("var e=document.getElementById('toast'); return e.classList.contains('show') ? e.textContent : ''")
-        if t: return ('toast:' + t, time.time() - t0)
+        if t and ('❌' in t or '失败' in t): return ('toast:' + t, time.time() - t0)  # 仅错误型 toast 视为登录失败，信息型提示（如kq启用）忽略
         v = jsx("return [!document.getElementById('view-user').classList.contains('hidden'),"
                 "!document.getElementById('view-admin').classList.contains('hidden')]")
         if v and v[0]: return ('user', time.time() - t0)
@@ -92,6 +92,10 @@ def wait_login_result(timeout=25):
         time.sleep(0.1)
     return ('timeout', timeout)
 def do_login(u, p):
+    # v0.9.0 起页面会自动恢复上次登录：切换账号前先清本机凭证并重载
+    jsx("try{localStorage.removeItem('shdgjy-auth')}catch(e){}; return 1")
+    goto(BASE_ON + '/shdgjy.html')
+    time.sleep(1.2)
     t0 = time.time()
     while time.time() - t0 < 4.0:
         if jsx("return document.getElementById('toast').classList.contains('show')") is not True: break
@@ -267,6 +271,20 @@ try:
     time.sleep(2.2)
     r, _ = do_login('user', 'newadmin77')
     ok('A15 新管理员密码生效', r == 'admin')
+    # A16 登录态持久化：刷新后自动恢复；登出后清除
+    ok('A16 登录凭证已存', bool(jsx("return localStorage.getItem('shdgjy-auth')")))
+    goto(BASE_ON + '/shdgjy.html')
+    t0 = time.time()
+    while time.time() - t0 < 15:
+        if jsx("return !document.getElementById('view-admin').classList.contains('hidden')"): break
+        time.sleep(0.2)
+    ok('A16 刷新后自动恢复管理登录', jsx("return !document.getElementById('view-admin').classList.contains('hidden')") is True)
+    click('btn-logout-a'); time.sleep(0.4)
+    ok('A16 登出后凭证清除', not (jsx("return localStorage.getItem('shdgjy-auth')") or ''))
+    goto(BASE_ON + '/shdgjy.html'); time.sleep(1.5)
+    ok('A16 登出后刷新停在登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
+    r, _ = do_login('user', 'newadmin77')
+    ok('A16 重新登录成功', r == 'admin', r)
 
     # ============ 阶段 Q：二维码（一人一码）============
     print('== 阶段Q：二维码 ==')

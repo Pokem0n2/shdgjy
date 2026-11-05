@@ -598,13 +598,14 @@ function doLogin(){
   var btn=$('btn-login');
   btn.disabled=true; btn.textContent='验证中…';
   setTimeout(function(){
-    var fail=function(){ toast('❌核验未通过，请重试！'); };
+    var fail=function(){ clearAuth(); toast('❌核验未通过，请重试！'); };
     try{
       if(u===ADMIN_USER){
         var Ka=deriveKey(p, auth.sA, auth.it);
         if(keyVer(Ka)!==auth.aV){ fail(); }
         else{
           var payloadA=JSON.parse(decPayload(Ka, auth.e2));
+          saveAuth(u, p);
           enterAdmin(payloadA, p);
         }
       }else{
@@ -618,6 +619,7 @@ function doLogin(){
           }
           if(!found){ fail(); }
           else{
+            saveAuth(u, p);
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
             session={role:'user'};
@@ -686,6 +688,7 @@ function doLogout(msg){
   session=null; state=null; editingKey=null; lastExport=null;
   if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
   ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
+  clearAuth(); // 主动退出才清除登录态
   ['u-name','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
   var qi=$('u-qr-img'); if(qi) qi.removeAttribute('src'); // 防上一个用户的码残留
   var qw=$('u-qr-wrap'); if(qw) qw.style.display='';
@@ -724,6 +727,23 @@ function renderSelfQr(user){
   drawQr(cv, ticketUrl(user), 440); // 2x 位图：保存/打印清晰
   $('u-qr-img').src=cv.toDataURL('image/png');
   $('u-qr-img').onclick=function(){ openQrBig(user); };
+}
+
+// ---------- 登录态持久化（记住登录，直到主动退出；凭证仅存本机 localStorage） ----------
+function saveAuth(u, p){
+  try{ localStorage.setItem('shdgjy-auth', JSON.stringify({u:u, p:p})); }catch(e){}
+}
+function clearAuth(){
+  try{ localStorage.removeItem('shdgjy-auth'); }catch(e){}
+}
+function autoLogin(){
+  var saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('shdgjy-auth')||'null'); }catch(e){}
+  if(saved&&saved.u&&saved.p){
+    $('li-user').value=saved.u;
+    $('li-pass').value=saved.p;
+    $('btn-login').click();
+  }
 }
 
 // ---------- 用户表格 ----------
@@ -1114,7 +1134,9 @@ function boot(){
   showView('login');
   // 扫码核验入口：#q=<票据> → 解密票据 → 校验用户有效 → 直接展示核验通过页。
   // 首次加载与 hash 变化（微信 webview 扫第二个码可能仅 hash 跳转）都触发。
-  tryScanTicket();
+  // 无票据时尝试恢复上次登录（保安扫码场景不落凭证，互不影响）。
+  if(location.hash.match(/[#&]q=/)){ tryScanTicket(); }
+  else{ autoLogin(); }
   window.addEventListener('hashchange', tryScanTicket);
 }
 function tryScanTicket(){

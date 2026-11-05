@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.8.5 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.9.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -187,7 +187,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.8.5</footer>
+<footer>shdgjy v0.9.0</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -269,7 +269,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"6ba236e3956b80b623eafb8c3ff659d2","sU":"6d0dc081a772d17fe933777276e89206","sW":"924106edaed772fe18e16c47e80bfe13","aV":"cf56a459769e37e14f3e2072d18d67f11fbd38883e3de2e703565238baa0afc7","uV":"95bb386fe04792f044b09f2fdc05c3df90c76d6e832539855241d3c838f9b89a","e1":"h7mCmtIybibbkfadMuH84DJESMb7PMy5H4/ODanfKJs5lGOtUL7OHfZfZdWmPmcN4oJSvMq3PjVpAAOAZU8WQGjcaA0UxxMZ2jdS5YEQ4iUQ3YuvJgzmvXRy7ovfUZhfWhkJQ9xJ0pXJwYA5nchEBWV6Qjh+3JHEWmjyR00VuQ==","e2":"9LaeZFPokbtWOqu2DW7q9VamBhGYvk65FzlNDir9rPI5GZ11EKpHA0qLaPsPzzt6diDY5Dt27YQOa+nspef4jLbaKUb4/IXuc/Ohum4AS4i27jbQxmc1FRRScVhkwbmpfcFDR8CjSJds3gzv3Vr31Pm3cKyhcUXHYmX8xzjxjA=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"52a66c803c7ab499ace3db99a7690867","sU":"8b82d96263807a4607d6570ce319801c","sW":"da025280e8b755488dad7643c4f6e166","aV":"8ef47b45237349b91812b6096bfb6bf63a9d6ff5e6e6e0f55a78afeae87991c1","uV":"262e139c0a8fda31b88b9138ec542d3c4d59d2f5999cad9c0c139dc88851c527","e1":"3vqr0r7ySt+iDD1al4oBXr1PxPxhDzctKHnxaSIdi2sGuciILQl+ZpyphrSwNBijvlP6DD1UudDklHPvc6gmHwpp8CH79Vjgnua6Nuaq1COdjhegO0u9Qot7VnH8hlInbg+pxiyzbWAMvdr9B8mJRi9CO2wK6Gvv8CT1K0/awg==","e2":"pm/rmUIljQPKUw8fYkpzvaQi7HhRJQjh5IoBPmcEJK5/LGrDXhXItQRT1w/LF8rzQ382efymnrCVbiw6j817GA1nfSmXpIiAsuSkFGSUeyBO04rHgpynfBC58ZSyS17T+gtEPQaZYGj2QLS/N1i2Fy+eT6IW8M/4iVXH2wnhFA=="}</script>
 <script>
 (function(){
 'use strict';
@@ -519,7 +519,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.8.5';
+var APP_VERSION='0.9.0';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -598,13 +598,14 @@ function doLogin(){
   var btn=$('btn-login');
   btn.disabled=true; btn.textContent='验证中…';
   setTimeout(function(){
-    var fail=function(){ toast('❌核验未通过，请重试！'); };
+    var fail=function(){ clearAuth(); toast('❌核验未通过，请重试！'); };
     try{
       if(u===ADMIN_USER){
         var Ka=deriveKey(p, auth.sA, auth.it);
         if(keyVer(Ka)!==auth.aV){ fail(); }
         else{
           var payloadA=JSON.parse(decPayload(Ka, auth.e2));
+          saveAuth(u, p);
           enterAdmin(payloadA, p);
         }
       }else{
@@ -618,6 +619,7 @@ function doLogin(){
           }
           if(!found){ fail(); }
           else{
+            saveAuth(u, p);
             $('u-name').textContent=found.n;
             $('u-plate').textContent=found.p;
             session={role:'user'};
@@ -686,6 +688,7 @@ function doLogout(msg){
   session=null; state=null; editingKey=null; lastExport=null;
   if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
   ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
+  clearAuth(); // 主动退出才清除登录态
   ['u-name','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
   var qi=$('u-qr-img'); if(qi) qi.removeAttribute('src'); // 防上一个用户的码残留
   var qw=$('u-qr-wrap'); if(qw) qw.style.display='';
@@ -724,6 +727,23 @@ function renderSelfQr(user){
   drawQr(cv, ticketUrl(user), 440); // 2x 位图：保存/打印清晰
   $('u-qr-img').src=cv.toDataURL('image/png');
   $('u-qr-img').onclick=function(){ openQrBig(user); };
+}
+
+// ---------- 登录态持久化（记住登录，直到主动退出；凭证仅存本机 localStorage） ----------
+function saveAuth(u, p){
+  try{ localStorage.setItem('shdgjy-auth', JSON.stringify({u:u, p:p})); }catch(e){}
+}
+function clearAuth(){
+  try{ localStorage.removeItem('shdgjy-auth'); }catch(e){}
+}
+function autoLogin(){
+  var saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('shdgjy-auth')||'null'); }catch(e){}
+  if(saved&&saved.u&&saved.p){
+    $('li-user').value=saved.u;
+    $('li-pass').value=saved.p;
+    $('btn-login').click();
+  }
 }
 
 // ---------- 用户表格 ----------
@@ -1114,7 +1134,9 @@ function boot(){
   showView('login');
   // 扫码核验入口：#q=<票据> → 解密票据 → 校验用户有效 → 直接展示核验通过页。
   // 首次加载与 hash 变化（微信 webview 扫第二个码可能仅 hash 跳转）都触发。
-  tryScanTicket();
+  // 无票据时尝试恢复上次登录（保安扫码场景不落凭证，互不影响）。
+  if(location.hash.match(/[#&]q=/)){ tryScanTicket(); }
+  else{ autoLogin(); }
   window.addEventListener('hashchange', tryScanTicket);
 }
 function tryScanTicket(){
