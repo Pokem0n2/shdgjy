@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.6'
+VERSION = 'v0.10.7'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -586,6 +586,14 @@ try:
     ok('S2 重名添加被阻止', int(txt('row-count').split()[1]) == _n0 + 1 and '已存在' in (jsx("return document.getElementById('edit-err').textContent") or ''),
        txt('row-count') + ' / ' + str(jsx("return document.getElementById('edit-err').textContent")))
     ok('S2 重名3秒浮窗提示', '已存在' in (jsx("return document.getElementById('toast').textContent") or ''))
+    # S2b 用户名含空格被拒（线上实录 approvals mode 事故）
+    jsx("document.getElementById('f-proj').value='SX项目';document.getElementById('f-org').value='十公司';"
+        "document.getElementById('f-user').value='approvals mode';document.getElementById('f-name').value='带空格';"
+        "document.getElementById('f-phone').value='13900000005';document.getElementById('f-plate').value='沪S00005';return 1")
+    click('btn-edit-ok'); time.sleep(0.3)
+    ok('S2b 含空格用户名被拒', (jsx("return document.getElementById('edit-err').textContent") or '') == '用户名不能包含空格',
+       repr(jsx("return document.getElementById('edit-err').textContent")))
+    jsx("document.querySelector('#modal-edit [data-close]').click(); return null"); time.sleep(0.2)
     jsx("document.querySelector('#modal-edit [data-close]').click(); return null"); time.sleep(0.3)
     click('btn-import'); time.sleep(0.3)
     _dupimp = 'SX项目,十公司,dupx,重复甲,13900000003,沪S00003' + chr(10) + 'SX项目,十公司,snew1,撞名,13900000004,沪S00004'

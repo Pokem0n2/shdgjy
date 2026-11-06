@@ -938,6 +938,7 @@ function applyEdit(){
   var errEl=$('edit-err');
   errEl.textContent='';
   if(!pr||!o||!u||!n||!p){ errEl.textContent='项目名称、单位名称、用户名、姓名、车牌号均不能为空'; return; }
+  if(/\s/.test(u)){ errEl.textContent='用户名不能包含空格'; toast('⚠ 用户名不能包含空格，请修改', 3000); return; }
   if(u===ADMIN_USER){ errEl.textContent='该用户名为管理员保留名'; return; }
   if(pr.length>64||o.length>64||u.length>32||n.length>32||ph.length>16||p.length>16){ errEl.textContent='超出长度限制'; return; }
   var dup=state.users.some(function(r){ return r.u===u && r.u!==editingKey; });

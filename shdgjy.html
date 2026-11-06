@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.6 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.7 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -213,7 +213,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.6</footer>
+<footer>shdgjy v0.10.7</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -298,7 +298,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"80eedfa376b688e2c1cb9cd226a1bf81","sU":"541b0e4dd62340c90e46bf8496d61eae","sW":"1955d0520e0a4e8cbc3a869ee3a5160d","aV":"a0cb6b654b6190105f8d638b2a46a8543181c514cef9b4d71959518f6e6dff08","uV":"d79ea6c1b3cfe911e5027b5f33f8245ecc32ca38aa1527aee63b5a16102a077e","e1":"stKBzubJepEQtyGv3Ukm6QazAAS2adXRHgixOHf2GSic2VyeR8/+9N0MVqgg5AtcIVr/iuAvMZvmdNIznR6M3MFlyfVfuAU7VXSO23XTe7E+0OBZeVy1mV6/TYc9MMACwJhvNnVwQtV+aZvrqn9e50rWamOPEZ2YzPMyPYIrgQ==","e2":"gNqgiAXrv22wG3b7TbUEJYzi5pstWFRUQKSyJNLymlmAnXcLV9KjP76gob3r6wQVDYvyPbTqAJEvJqsFxIF74YO4Yb5PM3sXvbsSeKuwbyyTZrOpVfsQTyRLJr+0sSrCVUnLtHmr3JW7irCmQX5LsE/dk0vmaIxXi+IaS4+fbg=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"6b4b6621d8fa8a7ae6d4809f5d5f8583","sU":"a75de6bb23e4e71ac813d59fc168de74","sW":"16962aca944bfeca95c7deb7a83cd7f8","aV":"86da0194d6f986f8d2dc1bf2cf895b1a4bc0754a200fdab88def2dc8ed50dd52","uV":"f83e980f79e04ab02614d87d3e9a1149348b66472d69b14b6ba6fba1c8f76004","e1":"s4dib+d4awiAi5FD4d/gVL2Kqc+qZRHrdEhnlQ2mugfnGGXtx5U9ueAyreyL8A+IX8c8yDONk9iZQi2qxOwzcYiu/32OPSxOmrlIVRgNJ+V73IbiayQKjP7uG4rFU7AfOZpiQLIO53f7f1U9jVqNIrvLFUS7cmLLE+5J3eDMaw==","e2":"zI31fjJORV+iJUtsMaOpf+ygSXyEJYKGwmIBfuZyaDuXQGIBnp+XPYJNAHt4UKjYr8ZJvV/tfNM4/Cq5+5xclvb9xf1hSWuKRXwnGWu6dAlfWFwu80nn6AYp3sDgo4dNavr7Vb3RzSNy0NQ9OYd9GfavCPUCaA0zHnxrXSMM9w=="}</script>
 <script>
 (function(){
 'use strict';
@@ -548,7 +548,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.6';
+var APP_VERSION='0.10.7';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -938,6 +938,7 @@ function applyEdit(){
   var errEl=$('edit-err');
   errEl.textContent='';
   if(!pr||!o||!u||!n||!p){ errEl.textContent='项目名称、单位名称、用户名、姓名、车牌号均不能为空'; return; }
+  if(/\s/.test(u)){ errEl.textContent='用户名不能包含空格'; toast('⚠ 用户名不能包含空格，请修改', 3000); return; }
   if(u===ADMIN_USER){ errEl.textContent='该用户名为管理员保留名'; return; }
   if(pr.length>64||o.length>64||u.length>32||n.length>32||ph.length>16||p.length>16){ errEl.textContent='超出长度限制'; return; }
   var dup=state.users.some(function(r){ return r.u===u && r.u!==editingKey; });
