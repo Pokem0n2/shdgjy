@@ -66,10 +66,11 @@ body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:195px}
 body.narrow th[data-col="user"]{width:130px}
 body.narrow th[data-col="name"]{width:65px}
 body.narrow th[data-col="phone"]{width:98px}
-body.narrow th[data-col="plate"]{width:65px}
+body.narrow th[data-col="plate"]{width:85px}
 body.narrow th[data-col="qr"]{width:33px}
-body.narrow th[data-col="op"]{width:33px}
-body.narrow .row-btn{min-width:0;white-space:normal;padding:4px 2px}
+body.narrow th[data-col="op"]{width:38px}
+body.narrow .w-plate{white-space:nowrap} /* 车牌为短标识不拆行；列宽已保证标准牌与新能源牌整串放下 */
+body.narrow .row-btn{min-width:0;white-space:nowrap;padding:4px 2px} /* 38px 列内"编辑/删除"横排放下 */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
@@ -846,7 +847,7 @@ function renderTable(){
   var ratioSum=0;
   cellsRatio.forEach(function(c){ if(!c.hide) ratioSum+=c.ratio; });
   var narrow=document.body.classList.contains('narrow');
-  var narrowPx={proj:'195px',org:'195px',user:'130px',name:'65px',phone:'98px',plate:'65px',qr:'33px',op:'33px'};
+  var narrowPx={proj:'195px',org:'195px',user:'130px',name:'65px',phone:'98px',plate:'85px',qr:'33px',op:'38px'};
   heads.forEach(function(th){
     var key=th.getAttribute('data-col');
     if(narrow){ th.style.width=narrowPx[key]||''; return; } // 手机竖屏：写死列宽（px 按断行字符数换算），列宽和超出容器形成左右滑动

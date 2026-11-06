@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.4 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.5 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -66,10 +66,11 @@ body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:195px}
 body.narrow th[data-col="user"]{width:130px}
 body.narrow th[data-col="name"]{width:65px}
 body.narrow th[data-col="phone"]{width:98px}
-body.narrow th[data-col="plate"]{width:65px}
+body.narrow th[data-col="plate"]{width:85px}
 body.narrow th[data-col="qr"]{width:33px}
-body.narrow th[data-col="op"]{width:33px}
-body.narrow .row-btn{min-width:0;white-space:normal;padding:4px 2px}
+body.narrow th[data-col="op"]{width:38px}
+body.narrow .w-plate{white-space:nowrap} /* 车牌为短标识不拆行；列宽已保证标准牌与新能源牌整串放下 */
+body.narrow .row-btn{min-width:0;white-space:nowrap;padding:4px 2px} /* 38px 列内"编辑/删除"横排放下 */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
@@ -212,7 +213,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.4</footer>
+<footer>shdgjy v0.10.5</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -297,7 +298,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"ce47256b6aaf7a7dddae2c97c2f86db0","sU":"204150778438ea137fb7dbf2c49e5233","sW":"03d2bebc7711ae20188a6232037d8240","aV":"4793c5dde7e8496d9b1008bc9958747457ec7375c07086613ab51531efed7a1c","uV":"d39673666fc6ab8389eca6b745a8a31aea10b5787c0f77628e4f34638df2bab2","e1":"QJ6Ye8SpzrXyXf6AeZBvCrf2kOZURYzxgMsLeiftxnGhkDbfmcwKzA+FbIEYpSQEyX1S8xO2dqDHEfn7Aw1vqXF6gYwOKFa8K1FTmkBIIOScHKdoQ/A0ExjZnNOGs4bf7dWFOpBBQnd5ddG+ZPvFWLsieWC2XxDxrRU90t32TQ==","e2":"c1mZn1Rz7FFzeuDcbMe8kuVJGA1B4NCM+VxaFkIJu0MH+dOzKeHDjLdwNkFUiXf65ecqNK1EW281xi1VYQN7uFWwy+hA9/S7iqGuWyHho2jm2GlgGTxO/wdmxccfvcOGu0hBFI1iGmI98btEFONq8rZAl3D6CsjiTQt4homB6w=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"46c075c6907319d05b317468049cfca9","sU":"4b147a2a0fa1faeaddc7ac6af8e8d9c1","sW":"10f4f81e01f6305559ef81ec356fd500","aV":"5455ad900a1c91b7e59e27ef41329213a7ea311026b91bd1523ab8934ee0a416","uV":"3f933a4cbcf563786e49e117ad6b402f6cf50957aeb9a7e7e18427ae08bf5c4f","e1":"4gz0bj6zYxVX3vXFTjbYosFGiQ8lpKl8kQwkQIlRYYGZvDRk+AWIuU35E50/AX6jWx5MA0nqS8T0A7kkq+3nzea5OFwY4JzmwjzTF2gb7jEy9Xz+ApUJRrJOG0B/7i6X3VcU5Nay/ud6m51VrAOcNCkz3Zuoa7+qGdkcD9OH7g==","e2":"MCnJMTbdc2TH8flpJPr1xDoAI0vM0aPpbQaRwgiZexvO8kaqo4RxcMDSDb3blCDkIo2p8K2e8ZtAHE6YhAAiiVs93IhidPQA6jvpHbh+zyTIIPFLU/h0iHzJJ/0bLS0fqyPtXpWe44VIZFpEMYSS2/VRVXRuQZBFL9zWE6muEQ=="}</script>
 <script>
 (function(){
 'use strict';
@@ -547,7 +548,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.4';
+var APP_VERSION='0.10.5';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -846,7 +847,7 @@ function renderTable(){
   var ratioSum=0;
   cellsRatio.forEach(function(c){ if(!c.hide) ratioSum+=c.ratio; });
   var narrow=document.body.classList.contains('narrow');
-  var narrowPx={proj:'195px',org:'195px',user:'130px',name:'65px',phone:'98px',plate:'65px',qr:'33px',op:'33px'};
+  var narrowPx={proj:'195px',org:'195px',user:'130px',name:'65px',phone:'98px',plate:'85px',qr:'33px',op:'38px'};
   heads.forEach(function(th){
     var key=th.getAttribute('data-col');
     if(narrow){ th.style.width=narrowPx[key]||''; return; } // 手机竖屏：写死列宽（px 按断行字符数换算），列宽和超出容器形成左右滑动

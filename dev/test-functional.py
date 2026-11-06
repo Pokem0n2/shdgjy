@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.4'
+VERSION = 'v0.10.5'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -691,7 +691,14 @@ try:
               "var hs=[].slice.call(d.querySelectorAll('thead th')).map(function(th){return [th.getAttribute('data-col'), Math.round(th.getBoundingClientRect().width), th.style.width||'-']});"
               "return [t.scrollWidth>w.clientWidth+1, Math.round(d.querySelector('th.h-proj').getBoundingClientRect().width), d.querySelector('th[data-col=op]').style.width, JSON.stringify(hs)]")
     print('  [D2b列] 横滚=', _wm[0], '| projRect=', _wm[1], '| opInline=', _wm[2], '| 各列[col,rect,inline]=', _wm[3])
-    ok('D2b 390px手机模式(写死列宽+可横滑)', _wm and _wm[0] is True and 185<=_wm[1]<=210 and _wm[2]=='33px', str(_wm[:3]))
+    ok('D2b 390px手机模式(写死列宽+可横滑)', _wm and _wm[0] is True and 185<=_wm[1]<=210 and _wm[2]=='38px', str(_wm[:3]))
+    # D2c 车牌不断行 + 操作按钮横排
+    _d2c = jsx("var d=document.getElementById('f').contentWindow.document;"
+        "var plateCell=d.querySelector('#tbody tr td:nth-child(6) .cell-w');"
+        "var rg=d.createRange(); rg.selectNodeContents(plateCell); var rects=rg.getClientRects().length;"
+        "var btn=d.querySelector('#tbody tr .row-btn'); var br=btn.getBoundingClientRect();"
+        "return [rects, Math.round(br.height), btn.scrollWidth<=Math.round(br.width)+2]")
+    ok('D2c 车牌整串单行+按钮横排', _d2c and _d2c[0]==1 and _d2c[1]<=32 and _d2c[2] is True, str(_d2c))
     m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var bts=d.querySelector('#tbody tr .op-stack').children;"
              "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"
