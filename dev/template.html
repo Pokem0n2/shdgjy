@@ -62,14 +62,14 @@ table{border-collapse:collapse;width:100%;table-layout:fixed}
 th,td{font-size:13px;vertical-align:middle}
 .cell-w{display:block;overflow-wrap:anywhere;vertical-align:middle} /* 列宽：电脑按比例分配；手机竖屏按字符数写死（见媒体查询），内容超出列宽在列内断行 */
 body.narrow table{width:auto;min-width:max-content} /* 列宽由 inline px 决定；宽度=列和，超出容器即左右滑动 */ /* 手机竖屏(JS 判定加类，规避 iframe 媒体查询怪癖)：写死列宽（px，按13px字号英字符宽6.5px换算断行字符数），数据区域左右滑动 */
-body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:130px}
-body.narrow th[data-col="user"]{width:65px}
-body.narrow th[data-col="name"]{width:52px}
-body.narrow th[data-col="phone"]{width:72px}
-body.narrow th[data-col="plate"]{width:52px}
-body.narrow th[data-col="qr"]{width:34px}
-body.narrow th[data-col="op"]{width:60px}
-body.narrow .row-btn{min-width:48px;white-space:nowrap;padding:6px 6px}
+body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:195px}
+body.narrow th[data-col="user"]{width:130px}
+body.narrow th[data-col="name"]{width:65px}
+body.narrow th[data-col="phone"]{width:98px}
+body.narrow th[data-col="plate"]{width:65px}
+body.narrow th[data-col="qr"]{width:33px}
+body.narrow th[data-col="op"]{width:33px}
+body.narrow .row-btn{min-width:0;white-space:normal;padding:4px 2px}
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
@@ -788,9 +788,9 @@ function autoLogin(){
 // ---------- 用户表格（筛选级联 + 分页20 + 列显隐） ----------
 var filterProj='', filterOrg='', pageNo=1, PAGE_SIZE=20;
 var cellsRatio=[
-  {key:'proj', ratio:20}, {key:'org', ratio:20}, {key:'user', ratio:10},
-  {key:'name', ratio:8}, {key:'phone', ratio:11}, {key:'plate', ratio:8},
-  {key:'qr', ratio:3}, {key:'op', ratio:5}
+  {key:'proj', ratio:30}, {key:'org', ratio:30}, {key:'user', ratio:20},
+  {key:'name', ratio:10}, {key:'phone', ratio:15}, {key:'plate', ratio:10},
+  {key:'qr', ratio:5}, {key:'op', ratio:5}
 ];
 function filteredList(){
   var q=$('search-box').value.trim().toLowerCase();
@@ -846,7 +846,7 @@ function renderTable(){
   var ratioSum=0;
   cellsRatio.forEach(function(c){ if(!c.hide) ratioSum+=c.ratio; });
   var narrow=document.body.classList.contains('narrow');
-  var narrowPx={proj:'130px',org:'130px',user:'65px',name:'52px',phone:'72px',plate:'52px',qr:'34px',op:'60px'};
+  var narrowPx={proj:'195px',org:'195px',user:'130px',name:'65px',phone:'98px',plate:'65px',qr:'33px',op:'33px'};
   heads.forEach(function(th){
     var key=th.getAttribute('data-col');
     if(narrow){ th.style.width=narrowPx[key]||''; return; } // 手机竖屏：写死列宽（px 按断行字符数换算），列宽和超出容器形成左右滑动
