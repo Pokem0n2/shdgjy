@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.8'
+VERSION = 'v0.10.9'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -467,6 +467,33 @@ try:
     time.sleep(0.5)
     ok('Q9 已退出到登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
 
+    # ============ 阶段 G：UI 调整（浮窗三项/行高减半/工具栏统一） ============
+    print('== 阶段G：UI调整 ==')
+    r, _ = do_login('user', 'newadmin77')
+    ok('G0 管理员登录', r == 'admin', r)
+    # G1 浮窗信息只含姓名/手机/车牌
+    jsx("var cv=document.querySelector('#tbody canvas.qr-thumb'); if(cv) cv.click(); return 1")
+    time.sleep(0.5)
+    _cap = jsx("return document.getElementById('qr-cap').textContent")
+    jsx("document.querySelector('#modal-qr [data-close]').click(); return null")
+    ok('G1 浮窗三项(姓名/手机/车牌,无项目单位)', _cap and _cap.count('　') == 2 and '徐畅' not in _cap and bool(_cap), repr(_cap))
+    # G2 行高减半（原 75px → ≤40px）
+    _rh = jsx("return Math.round(document.querySelector('#tbody tr').getBoundingClientRect().height)")
+    ok('G2 行高减半(≤40px)', _rh and _rh <= 40, f'{_rh}px (原75)')
+    # G3 工具栏控件统一 32px 高，按钮统一 76px 宽
+    _tb = jsx("return (function(){var ids=['btn-logout-a','btn-filter-reset','btn-add','btn-import','btn-csv','btn-set'];"
+        "var out=[]; ids.forEach(function(id){var b=document.getElementById(id); var r=b.getBoundingClientRect(); out.push([id,Math.round(r.height),Math.round(r.width)])});"
+        "var s1=document.getElementById('sel-proj').getBoundingClientRect(), s2=document.getElementById('search-box').getBoundingClientRect();"
+        "out.push(['sel-proj',Math.round(s1.height),'-'],['search-box',Math.round(s2.height),'-']); return out})()")
+    _h_ok = all(x[1] == 32 for x in _tb)
+    _w_ok = all(x[2] == 76 for x in _tb if x[0].startswith('btn-'))
+    ok('G3 工具栏高度统一32px', _h_ok, str(_tb))
+    ok('G3 按钮宽度统一76px', _w_ok, str(_tb))
+    click('btn-logout-a'); time.sleep(0.3)
+    if jsx("return document.getElementById('modal-confirm').classList.contains('open')") is True:
+        click('btn-confirm-ok')
+    time.sleep(0.5)
+
     # ============ 阶段 R：保存持久化字段完整性（v0.10.6 丢字段事故回归） ============
     print('== 阶段R：保存持久化 ==')
     r, _ = do_login('user', 'newadmin77')
@@ -758,7 +785,7 @@ try:
              "var bts=d.querySelector('#tbody tr .op-stack').children;"
              "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"
              "return [Math.round(a.left), Math.round(b.left), Math.round(b.top-a.bottom)]")
-    ok('D3 编辑/删除垂直堆叠+间距', m3 and abs(m3[0]-m3[1]) <= 2 and m3[2] >= 4, str(m3))
+    ok('D3 编辑/删除垂直堆叠+间距', m3 and abs(m3[0]-m3[1]) <= 2 and m3[2] >= 1, str(m3))  # v0.10.9 行高减半后 gap 收窄为 2
     m4 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var s=d.getElementById('btn-save').getBoundingClientRect();"
              "var cs=getComputedStyle(d.getElementById('btn-save'));"

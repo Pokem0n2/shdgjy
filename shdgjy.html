@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.8 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.9 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -55,7 +55,8 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 .admin-head h2{font-size:19px}
 .head-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-#search-box{flex:1;min-width:180px;height:40px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:15px;background:#fffdf9}
+.toolbar .btn{height:32px;width:76px;padding:0 4px;font-size:13px} /* 工具栏按钮与退出登录按钮同高(32px)同宽(76px) */
+#search-box{flex:1;min-width:180px;height:32px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:13px;background:#fffdf9} /* 高度与退出按钮一致 */
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
 table{border-collapse:collapse;width:100%;table-layout:fixed}
@@ -76,18 +77,18 @@ body.narrow th[data-col="op"]{width:38px}
 body.narrow .row-btn{padding:4px 2px} /* 38px 列内"编辑/删除"横排放下（nowrap 已全局） */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
-.filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
+.filter-sel{height:32px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:13px;background:#fffdf9;color:#4a4238;max-width:32vw} /* 高度与退出按钮一致 */
 .pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
 .pager{display:flex;align-items:center;gap:10px}
 .hidden{display:none!important}
-th{color:#8a8378;text-align:left;padding:9px 6px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
-td{padding:9px 6px;border-bottom:1px solid #f0e9dd}
+th{color:#8a8378;text-align:left;padding:4px 6px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
+td{padding:1px 6px;border-bottom:1px solid #f0e9dd} /* 行高压缩：操作列竖排小按钮撑行 ~35px */
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
 td.qr-cell{text-align:center;padding-left:2px;padding-right:2px}
-.op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
-.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:4px 5px;border-radius:6px;min-width:0;max-width:100%;white-space:nowrap;line-height:1.25} /* 按钮文字横排；列宽由 th min-width 兜底保证放下 */
+.op-stack{display:inline-flex;flex-direction:column;gap:2px;align-items:center;vertical-align:middle} /* 行高减半配套 */
+.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:11px;cursor:pointer;padding:1px 4px;border-radius:4px;min-width:0;max-width:100%;white-space:nowrap;line-height:1.2} /* 紧凑按钮：行高减半（原 13px/4px 撑到 75px） */
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#c62828;font-weight:400}
 .empty{padding:34px 0;text-align:center}
@@ -216,7 +217,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.8</footer>
+<footer>shdgjy v0.10.9</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -301,7 +302,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"7daa3d5e9e7f39c712783e7ca2dccdb9","sU":"acd68cac5e4a65bf270f3a9b6fbb91f1","sW":"0e5ddac19f84215acb2f3cafc748b47d","aV":"ad195e56fd202dcc88ce1e315cb77b0bde54778256e10dfdd69dfaf9cc99a727","uV":"d62365be45d93786509b611b20d98962efa1010591d25fdc3adc2f6808794850","e1":"TI8ZhgFrUFZugklQcNE0MkrYI79uHlrkrvnZTMZYC9l7XpTaA5ybOwQgEI2az8/bd6XceHTCtHwKOxFqhFTcqo60RBcMjwzdtxbEktQ1GoTdPtmrIqH24ka3wHFFN33NVgiVCerJqsZl7VV2eKPJKMtEfoQ9WK0Kj69xknVLEQ==","e2":"Oe2rHJMgE7RMzDSbw9vaqLDjfKUccS2VhER7o3rP6voPNU974XY5RvmMrH61mh+6b9cF2k3AOAT42jm3KdUe2p52N2k38E2S/17TVoQjL3XGoIaWZKZVPaPvqDdZsRuNaMmVCExXwRF5iy2hAPfFH1OFDC1pY0vMzs+ldzrnYw=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"b6b2ac95b6163647c82f73a9c1a56ba6","sU":"9c4d62cde06cd070ed395fe6594c7f95","sW":"4bf1ec80f62a22f1b9b2f5073345a949","aV":"f9ffceee9fedd3fa699a0a6db806c51d4d5653d1c4850fb231af7623a4258190","uV":"2173a2a1c232e61d49c609107bd3fcd9c3441e8b71257fdb2d460c9d82f7c796","e1":"m0QBHBLvRWUFHYsK6AJbWU2zgwyfWQ2PVeW7DRO7d1eyr/ho81WMXbqQx/MSRCa0EIQTOrbrKyje7Arc6hpjqMPlPZ9xWlWvN6CW9jpTQDKhcadUxtSiSHzu/39k+Cns5dQ1bZW7KpDQINJ2TnFiPn7D9vxhCMcP8aimZLnMgQ==","e2":"Cg8svTKG+iLcj9z4rnPveNa2kEbhEpZVQMXYm4zzseoTWN/uWSea9S8oQ23agIqTsMiyza1uXYgpLIr47QCM+5CAtLvJFNvkx+Ft1xTZfsRY44CNVUD3cH+Hs1paUnPETiZjdzGCxsedkK88r6fzEG1m5gcPPI24mvP/H6cnDg=="}</script>
 <script>
 (function(){
 'use strict';
@@ -551,7 +552,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.8';
+var APP_VERSION='0.10.9';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -762,7 +763,7 @@ function openQrBig(user){
   var cv=document.createElement('canvas');
   drawQr(cv, ticketUrl(user), 440);
   $('qr-big-img').src=cv.toDataURL('image/png');
-  $('qr-cap').textContent=((user.proj||'')+'　'+(user.org||'')+'　'+(user.n||'')+'　'+(user.p||'')).trim();
+  $('qr-cap').textContent=((user.n||'')+'　'+(user.phone||'')+'　'+(user.p||'')).trim();
   openModal('modal-qr');
 }
 function renderSelfQr(user){
