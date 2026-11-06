@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.9'
+VERSION = 'v0.10.10'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -781,6 +781,13 @@ try:
         "var btn=d.querySelector('#tbody tr .row-btn'); var br=btn.getBoundingClientRect();"
         "return [rects, Math.round(br.height), btn.scrollWidth<=Math.round(br.width)+2]")
     ok('D2c 车牌整串单行+按钮横排', _d2c and _d2c[0]==1 and _d2c[1]<=32 and _d2c[2] is True, str(_d2c))
+    # D2d 手机工具栏：重置贴右与退出/批量右缘对齐；两下拉平分剩余宽
+    _d2d = jsx("var d=document.getElementById('f').contentWindow.document;"
+        "var w=d.querySelector('.toolbar'); var wr=w.getBoundingClientRect();"
+        "var sp=d.getElementById('sel-proj').getBoundingClientRect(), so=d.getElementById('sel-org').getBoundingClientRect(),"
+        "rs=d.getElementById('btn-filter-reset').getBoundingClientRect();"
+        "return [Math.round(wr.right-rs.right), Math.round(Math.abs(sp.width-so.width)), Math.round(sp.left-wr.left)]")
+    ok('D2d 重置贴右+两下拉等宽', _d2d and _d2d[0]<=10 and _d2d[1]<=2, str(_d2d))
     m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var bts=d.querySelector('#tbody tr .op-stack').children;"
              "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"

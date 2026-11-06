@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.9 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.10 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -75,6 +75,8 @@ body.narrow th[data-col="plate"]{width:85px}
 body.narrow th[data-col="qr"]{width:33px}
 body.narrow th[data-col="op"]{width:38px}
 body.narrow .row-btn{padding:4px 2px} /* 38px 列内"编辑/删除"横排放下（nowrap 已全局） */
+body.narrow .filter-sel{flex:0 0 calc((100% - 92px)/2);min-width:0;max-width:none} /* 手机：两下拉平分剩余宽度（Firefox select 不响应 flex 收缩，用 calc 基准宽；92=重置76+两 gap 8×2） */
+body.narrow #btn-filter-reset{margin-left:auto} /* 手机：重置贴右，与退出登录/批量导入右缘垂直对齐 */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:32px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:13px;background:#fffdf9;color:#4a4238;max-width:32vw} /* 高度与退出按钮一致 */
@@ -217,7 +219,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.9</footer>
+<footer>shdgjy v0.10.10</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -302,7 +304,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"b6b2ac95b6163647c82f73a9c1a56ba6","sU":"9c4d62cde06cd070ed395fe6594c7f95","sW":"4bf1ec80f62a22f1b9b2f5073345a949","aV":"f9ffceee9fedd3fa699a0a6db806c51d4d5653d1c4850fb231af7623a4258190","uV":"2173a2a1c232e61d49c609107bd3fcd9c3441e8b71257fdb2d460c9d82f7c796","e1":"m0QBHBLvRWUFHYsK6AJbWU2zgwyfWQ2PVeW7DRO7d1eyr/ho81WMXbqQx/MSRCa0EIQTOrbrKyje7Arc6hpjqMPlPZ9xWlWvN6CW9jpTQDKhcadUxtSiSHzu/39k+Cns5dQ1bZW7KpDQINJ2TnFiPn7D9vxhCMcP8aimZLnMgQ==","e2":"Cg8svTKG+iLcj9z4rnPveNa2kEbhEpZVQMXYm4zzseoTWN/uWSea9S8oQ23agIqTsMiyza1uXYgpLIr47QCM+5CAtLvJFNvkx+Ft1xTZfsRY44CNVUD3cH+Hs1paUnPETiZjdzGCxsedkK88r6fzEG1m5gcPPI24mvP/H6cnDg=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"0df8b2c0ac663a5aeb3a9fb536703d48","sU":"6a910e61bddeb86f1df5c7abb0833b69","sW":"12f2dd373e95f758790bbde823e6b497","aV":"87c3d0b89f648115565e349dc28f20f9ce2f642c36131f0f1dbd815aafd4fc42","uV":"1b0cbac4c3c51b7e6fba2975736230938e51059fa78efc46464feeac5e2410ac","e1":"G/yFEDlXrvTj+hmyYRLGCeogJ7FPjqW14eKPV5pbUb/Wnymp1DlTCTijoJP5IFAeU9qlxeI9Iqx/kqX1Ueu8JYl4OmBJFSA3teuKGl5Y3L42TRJebwPtS89kL0APuHPzltN1MuE5fFEuiiVXMil4LCc+5UzcLTD6TeYgoD7M3g==","e2":"EtUSOZMEzCaK0Uqn2gJCwpNRnxZnUl6Gh+yaMuhM+fdfjmmysdWgNM5jiMozBRZx74hhnZj/jKPGWNoYE21azhxtEsdnIj/fcANTsU1YC8MYy3lEcOmyolE3PFqX7KQOD5MH8YZQAlAas/7/19K+Jl4bA1bMeZp0FA9VUIwHow=="}</script>
 <script>
 (function(){
 'use strict';
@@ -552,7 +554,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.9';
+var APP_VERSION='0.10.10';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出

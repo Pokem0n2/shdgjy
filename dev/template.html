@@ -75,6 +75,8 @@ body.narrow th[data-col="plate"]{width:85px}
 body.narrow th[data-col="qr"]{width:33px}
 body.narrow th[data-col="op"]{width:38px}
 body.narrow .row-btn{padding:4px 2px} /* 38px 列内"编辑/删除"横排放下（nowrap 已全局） */
+body.narrow .filter-sel{flex:0 0 calc((100% - 92px)/2);min-width:0;max-width:none} /* 手机：两下拉平分剩余宽度（Firefox select 不响应 flex 收缩，用 calc 基准宽；92=重置76+两 gap 8×2） */
+body.narrow #btn-filter-reset{margin-left:auto} /* 手机：重置贴右，与退出登录/批量导入右缘垂直对齐 */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:32px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:13px;background:#fffdf9;color:#4a4238;max-width:32vw} /* 高度与退出按钮一致 */
