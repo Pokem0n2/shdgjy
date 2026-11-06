@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.5 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.6 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -213,7 +213,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.5</footer>
+<footer>shdgjy v0.10.6</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -298,7 +298,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"46c075c6907319d05b317468049cfca9","sU":"4b147a2a0fa1faeaddc7ac6af8e8d9c1","sW":"10f4f81e01f6305559ef81ec356fd500","aV":"5455ad900a1c91b7e59e27ef41329213a7ea311026b91bd1523ab8934ee0a416","uV":"3f933a4cbcf563786e49e117ad6b402f6cf50957aeb9a7e7e18427ae08bf5c4f","e1":"4gz0bj6zYxVX3vXFTjbYosFGiQ8lpKl8kQwkQIlRYYGZvDRk+AWIuU35E50/AX6jWx5MA0nqS8T0A7kkq+3nzea5OFwY4JzmwjzTF2gb7jEy9Xz+ApUJRrJOG0B/7i6X3VcU5Nay/ud6m51VrAOcNCkz3Zuoa7+qGdkcD9OH7g==","e2":"MCnJMTbdc2TH8flpJPr1xDoAI0vM0aPpbQaRwgiZexvO8kaqo4RxcMDSDb3blCDkIo2p8K2e8ZtAHE6YhAAiiVs93IhidPQA6jvpHbh+zyTIIPFLU/h0iHzJJ/0bLS0fqyPtXpWe44VIZFpEMYSS2/VRVXRuQZBFL9zWE6muEQ=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"80eedfa376b688e2c1cb9cd226a1bf81","sU":"541b0e4dd62340c90e46bf8496d61eae","sW":"1955d0520e0a4e8cbc3a869ee3a5160d","aV":"a0cb6b654b6190105f8d638b2a46a8543181c514cef9b4d71959518f6e6dff08","uV":"d79ea6c1b3cfe911e5027b5f33f8245ecc32ca38aa1527aee63b5a16102a077e","e1":"stKBzubJepEQtyGv3Ukm6QazAAS2adXRHgixOHf2GSic2VyeR8/+9N0MVqgg5AtcIVr/iuAvMZvmdNIznR6M3MFlyfVfuAU7VXSO23XTe7E+0OBZeVy1mV6/TYc9MMACwJhvNnVwQtV+aZvrqn9e50rWamOPEZ2YzPMyPYIrgQ==","e2":"gNqgiAXrv22wG3b7TbUEJYzi5pstWFRUQKSyJNLymlmAnXcLV9KjP76gob3r6wQVDYvyPbTqAJEvJqsFxIF74YO4Yb5PM3sXvbsSeKuwbyyTZrOpVfsQTyRLJr+0sSrCVUnLtHmr3JW7irCmQX5LsE/dk0vmaIxXi+IaS4+fbg=="}</script>
 <script>
 (function(){
 'use strict';
@@ -548,7 +548,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.5';
+var APP_VERSION='0.10.6';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -675,7 +675,7 @@ function doLogin(){
 function enterAdmin(payload, adminPwd){
   session={role:'admin'};
   state={
-    users: payload.users.map(function(x){ return {u:x.u, n:x.n, p:x.p}; }),
+    users: payload.users.map(function(x){ return {u:x.u, proj:x.proj||'', org:x.org||'', n:x.n||'', phone:x.phone||'', p:x.p||''}; }),
     unifiedPwd: payload.unifiedPwd,
     adminPwd: adminPwd,
     sA: auth.sA, sU: auth.sU, sW: auth.sW||'',

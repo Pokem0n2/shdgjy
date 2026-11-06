@@ -675,7 +675,7 @@ function doLogin(){
 function enterAdmin(payload, adminPwd){
   session={role:'admin'};
   state={
-    users: payload.users.map(function(x){ return {u:x.u, n:x.n, p:x.p}; }),
+    users: payload.users.map(function(x){ return {u:x.u, proj:x.proj||'', org:x.org||'', n:x.n||'', phone:x.phone||'', p:x.p||''}; }),
     unifiedPwd: payload.unifiedPwd,
     adminPwd: adminPwd,
     sA: auth.sA, sU: auth.sU, sW: auth.sW||'',

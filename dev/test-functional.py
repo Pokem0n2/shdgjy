@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.5'
+VERSION = 'v0.10.6'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -466,6 +466,42 @@ try:
         click('btn-confirm-ok')
     time.sleep(0.5)
     ok('Q9 已退出到登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
+
+    # ============ 阶段 R：保存持久化字段完整性（v0.10.6 丢字段事故回归） ============
+    print('== 阶段R：保存持久化 ==')
+    r, _ = do_login('user', 'newadmin77')
+    ok('R0 管理员登录', r == 'admin', r)
+    click('btn-import'); time.sleep(0.3)
+    _rimp = 'RP项目,瑞单位,rp1,瑞甲,13800000081,沪R 00001' + chr(10) + 'RP项目,瑞单位,rp2,瑞乙,13800000082,沪R 00002'
+    jsx("document.getElementById('imp-text').value=" + json.dumps(_rimp) + "; return 1")
+    click('btn-imp-ok'); time.sleep(0.6)
+    click('btn-save'); time.sleep(4)  # 等保存完成 toast
+    print('  [R1现场] toast=', repr(jsx("return document.getElementById('toast').textContent")),
+          '| dirty=', jsx("return window.__t.state().dirty"),
+          '| conn=', jsx("return window.__t.connMode && window.__t.connMode()") or 'n/a')
+    ok('R1 保存完成提示', '已保存' in (jsx("return document.getElementById('toast').textContent") or ''), repr(jsx("return document.getElementById('toast').textContent")))
+    # 重载页面（同 URL 导航=重载）→ 重新登录 → 断言 6 字段完整
+    goto(BASE_ON + '/shdgjy.html'); time.sleep(1.5)
+    r, _ = do_login('user', 'newadmin77')
+    ok('R2 重载后登录', r == 'admin', r)
+    print('  [R2现场] row-count=', repr(jsx("return document.getElementById('row-count').textContent")))
+    jsx("var e=document.getElementById('search-box');e.value='rp1';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
+    time.sleep(0.6)
+    print('  [R2搜索后] row-count=', repr(jsx("return document.getElementById('row-count').textContent")),
+          '| tbody行=', jsx("return document.getElementById('tbody').rows.length"),
+          '| 首行=', repr(jsx("var tr=document.querySelector('#tbody tr');return tr?tr.textContent.slice(0,60):null")))
+    _row1 = jsx("return (function(){var tr=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(t){return t.cells[2]&&t.cells[2].textContent==='rp1'})[0];return tr?[].slice.call(tr.cells).map(function(td){return td.textContent.trim()}):null})()")
+    ok('R2 保存-重载后6字段完整', _row1 and _row1[:6] == ['RP项目', '瑞单位', 'rp1', '瑞甲', '13800000081', '沪R 00001'], str(_row1))
+    # 清理现场
+    for u in ['rp1', 'rp2']:
+        jsx("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent==="+json.dumps(u)+"})[0];"
+            "if(row){row.querySelector('.row-btn.del').click(); document.getElementById('btn-confirm-ok').click()} return 1")
+        time.sleep(0.2)
+    click('btn-save'); time.sleep(3.5)
+    click('btn-logout-a'); time.sleep(0.3)
+    if jsx("return document.getElementById('modal-confirm').classList.contains('open')") is True:
+        click('btn-confirm-ok')
+    time.sleep(0.5)
 
     # ============ 阶段 F：车牌自动格式化 + placeholder ============
     print('== 阶段F：车牌格式化 ==')
