@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.9.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -58,17 +58,20 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 #search-box{flex:1;min-width:180px;height:40px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:15px;background:#fffdf9}
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
-table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{font-size:13px;word-break:break-word;vertical-align:middle}
-col.c-user{width:30.5%}col.c-name{width:18.5%}col.c-plate{width:20%}col.c-qr{width:15.5%}col.c-op{width:15.5%}
-td.plate-cell{white-space:nowrap}
+table{border-collapse:collapse}
+th,td{font-size:13px;vertical-align:middle}
+.cell-w{display:inline-block;overflow-wrap:anywhere;vertical-align:middle}
+.w-proj{max-width:20ch}.w-org{max-width:20ch}.w-user{max-width:10ch}.w-name{max-width:8ch}.w-phone{max-width:11ch}.w-plate{max-width:8ch}
+.filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
+.pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
+.pager{display:flex;align-items:center;gap:10px}
+.hidden{display:none!important}
 th{color:#8a8378;text-align:left;padding:9px 6px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
 td{padding:9px 6px;border-bottom:1px solid #f0e9dd}
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
 td.qr-cell{text-align:center}
-td.qr-cell,td.op{padding-left:3px;padding-right:3px}
 .op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
 .row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
 .row-btn:hover{background:#f3ece1}
@@ -95,7 +98,7 @@ td.plate-cell{white-space:nowrap}
 .set-group{display:inline-flex;align-items:center;gap:6px}
 .dirty-badge{display:none;color:#b03a2e;font-size:13px;font-weight:600;white-space:nowrap}
 .dirty-badge.show{display:inline}
-.qr-thumb{display:inline-block;width:48px;height:48px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
+.qr-thumb{display:inline-block;width:20px;height:20px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
@@ -148,7 +151,10 @@ td.plate-cell{white-space:nowrap}
     <div class="card user-card">
       <div class="pass-title">核验已通过✅</div>
       <div class="info-lead">用户身份信息如下：</div>
+      <div class="info-line"><span class="k">项目名称：</span><span id="u-proj"></span></div>
+      <div class="info-line"><span class="k">单位名称：</span><span id="u-org"></span></div>
       <div class="info-line"><span class="k">姓名：</span><span id="u-name"></span></div>
+      <div class="info-line"><span class="k">手机号：</span><span id="u-phone"></span></div>
       <div class="info-line"><span class="k">车牌号：</span><span id="u-plate"></span></div>
       <div class="u-qr-wrap" id="u-qr-wrap">
         <img id="u-qr-img" alt="我的二维码" title="点击放大，长按可保存">
@@ -168,7 +174,10 @@ td.plate-cell{white-space:nowrap}
     </div>
     <div id="sync-note" class="muted hidden" style="margin:-6px 0 10px"></div>
     <div class="toolbar">
-      <input id="search-box" type="search" placeholder="搜索用户名 / 姓名 / 车牌号">
+      <select id="sel-proj" class="filter-sel"><option value="">项目名称（全部）</option></select>
+      <select id="sel-org" class="filter-sel"><option value="">单位名称（全部）</option></select>
+      <button id="btn-filter-reset" class="btn subtle">重置筛选</button>
+      <input id="search-box" type="search" placeholder="搜索项目 / 单位 / 用户名 / 姓名 / 手机 / 车牌">
       <button id="btn-add" class="btn">添加用户</button>
       <button id="btn-import" class="btn subtle">批量导入</button>
       <button id="btn-csv" class="btn subtle">导出CSV</button>
@@ -176,25 +185,34 @@ td.plate-cell{white-space:nowrap}
     </div>
     <div class="table-wrap">
       <table>
-        <colgroup><col class="c-user"><col class="c-name"><col class="c-plate"><col class="c-qr"><col class="c-op"></colgroup>
-        <thead><tr><th>用户名</th><th>姓名</th><th>车牌号</th><th class="qr">二维码</th><th class="op">操作</th></tr></thead>
+        <thead><tr><th class="h-proj">项目名称</th><th class="h-org">单位名称</th><th>用户名</th><th>姓名</th><th>手机号</th><th>车牌号</th><th class="qr">二维码</th><th class="op">操作</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
       <div id="empty-tip" class="muted empty hidden">暂无用户</div>
     </div>
-    <div id="row-count" class="muted count"></div>
+    <div class="pager-row">
+      <div id="row-count" class="muted count"></div>
+      <div id="pager" class="pager hidden">
+        <button id="pg-prev" class="btn subtle sm">上一页</button>
+        <span id="pg-info" class="muted">第 1/1 页</span>
+        <button id="pg-next" class="btn subtle sm">下一页</button>
+      </div>
+    </div>
     <div id="save-bar"><span>有未保存更改</span><button id="btn-save" class="btn">保 存</button></div>
   </section>
 
 </main>
-<footer>shdgjy v0.9.0</footer>
+<footer>shdgjy v0.10.0</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
   <div class="modal-box">
     <h3 id="edit-title">添加用户</h3>
+    <label class="field"><span>项目名称</span><input id="f-proj" type="text" maxlength="64"></label>
+    <label class="field"><span>单位名称</span><input id="f-org" type="text" maxlength="64"></label>
     <label class="field"><span>用户名</span><input id="f-user" type="text" maxlength="32"></label>
     <label class="field"><span>姓名</span><input id="f-name" type="text" maxlength="32"></label>
+    <label class="field"><span>手机号</span><input id="f-phone" type="text" maxlength="16"></label>
     <label class="field"><span>车牌号</span><input id="f-plate" type="text" maxlength="16"></label>
     <div id="edit-err" class="err"></div>
     <div class="modal-actions">
@@ -208,7 +226,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-import" class="modal">
   <div class="modal-box">
     <h3>批量导入</h3>
-    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（逗号、空格、顿号、制表符分隔均可，同一批内可混用）"></textarea>
+    <textarea id="imp-text" placeholder="每行一条：项目名称,单位名称,用户名,姓名,手机号,车牌号&#10;某项目,某单位,zhangsan,张三,13800138000,沪A12345&#10;（逗号、空格、顿号、制表符分隔均可，同一批内可混用；用户名重复将整批取消）"></textarea>
     <label class="checkline"><input type="checkbox" id="imp-replace">导入前清空现有用户</label>
     <span id="imp-preview" class="muted"></span>
     <span id="imp-result" class="muted"></span>
@@ -269,7 +287,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"52a66c803c7ab499ace3db99a7690867","sU":"8b82d96263807a4607d6570ce319801c","sW":"da025280e8b755488dad7643c4f6e166","aV":"8ef47b45237349b91812b6096bfb6bf63a9d6ff5e6e6e0f55a78afeae87991c1","uV":"262e139c0a8fda31b88b9138ec542d3c4d59d2f5999cad9c0c139dc88851c527","e1":"3vqr0r7ySt+iDD1al4oBXr1PxPxhDzctKHnxaSIdi2sGuciILQl+ZpyphrSwNBijvlP6DD1UudDklHPvc6gmHwpp8CH79Vjgnua6Nuaq1COdjhegO0u9Qot7VnH8hlInbg+pxiyzbWAMvdr9B8mJRi9CO2wK6Gvv8CT1K0/awg==","e2":"pm/rmUIljQPKUw8fYkpzvaQi7HhRJQjh5IoBPmcEJK5/LGrDXhXItQRT1w/LF8rzQ382efymnrCVbiw6j817GA1nfSmXpIiAsuSkFGSUeyBO04rHgpynfBC58ZSyS17T+gtEPQaZYGj2QLS/N1i2Fy+eT6IW8M/4iVXH2wnhFA=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"5c553b5cdecae8ae2007620ea4b9bd0e","sU":"14816149e42cab3d68cdc201a78349de","sW":"3e666f06285e1b367181ca5161f52357","aV":"2ccfcbfd56915decd98476299f2adbfa4b6032a3f7e9e8abb341599a256930e6","uV":"ac1046a72908e415ba84ac9f62e75dad691bb3a53e32a8415690f56a1b157363","e1":"jOkNUvJwK3sVYosEM/YAhW4vqMOin795pX1Xj9eEPmuHoUTplnZagkyugy3EvxkrSlwKciCMkgBBEshuL/dLALYQ3qOKHzNRVNwqd9LiplT0pGv7AgHfazz81WRd+3+2La+xU1XrnCn8lgLKaZYiwj0UXajgRx4Jf21PSiSH4Q==","e2":"FPuYlRHEbRToLzdfumSoQo8dFvD7fTj0FLAq2OsMdeAX3n4+7RRnty6Fen2a4npj3RET0UDds2knYllebnrXnIy+qmaLVeu2y48QsfMLQuJD0tN9M9UxlUzeC9u/pXPhcVydi0xYmed+hF3A4c4NdPu9O1KiYgkrLr3F4f3umA=="}</script>
 <script>
 (function(){
 'use strict';
@@ -519,7 +537,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.9.0';
+var APP_VERSION='0.10.0';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -620,8 +638,11 @@ function doLogin(){
           if(!found){ fail(); }
           else{
             saveAuth(u, p);
-            $('u-name').textContent=found.n;
-            $('u-plate').textContent=found.p;
+            $('u-proj').textContent=found.proj||'';
+            $('u-org').textContent=found.org||'';
+            $('u-name').textContent=found.n||'';
+            $('u-phone').textContent=found.phone||'';
+            $('u-plate').textContent=found.p||'';
             session={role:'user'};
             $('u-qr-wrap').style.display='';
             try{ renderSelfQr(found); }catch(e){}
@@ -689,7 +710,7 @@ function doLogout(msg){
   if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
   ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
   clearAuth(); // 主动退出才清除登录态
-  ['u-name','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
+  ['u-proj','u-org','u-name','u-phone','u-plate'].forEach(function(id){ var n=$(id); if(n) n.textContent=''; });
   var qi=$('u-qr-img'); if(qi) qi.removeAttribute('src'); // 防上一个用户的码残留
   var qw=$('u-qr-wrap'); if(qw) qw.style.display='';
   showView('login');
@@ -702,7 +723,7 @@ function uHashHex(kqHex, u){
 }
 function ticketUrl(user){
   var kqHex=(state&&state.kq)||auth.kq;
-  var b64=encPayload(hexToBytes(kqHex), JSON.stringify({u:user.u, n:user.n, p:user.p}));
+  var b64=encPayload(hexToBytes(kqHex), JSON.stringify({u:user.u, proj:user.proj||'', org:user.org||'', n:user.n||'', phone:user.phone||'', p:user.p||''}));
   return location.href.split('#')[0]+'#q='+encodeURIComponent(b64);
 }
 function drawQr(cv, text, px){
@@ -719,7 +740,7 @@ function openQrBig(user){
   var cv=document.createElement('canvas');
   drawQr(cv, ticketUrl(user), 440);
   $('qr-big-img').src=cv.toDataURL('image/png');
-  $('qr-cap').textContent=user.n+'　'+user.p;
+  $('qr-cap').textContent=((user.proj||'')+'　'+(user.org||'')+'　'+(user.n||'')+'　'+(user.p||'')).trim();
   openModal('modal-qr');
 }
 function renderSelfQr(user){
@@ -746,28 +767,76 @@ function autoLogin(){
   }
 }
 
-// ---------- 用户表格 ----------
-function renderTable(){
+// ---------- 用户表格（筛选级联 + 分页20 + 列显隐） ----------
+var filterProj='', filterOrg='', pageNo=1, PAGE_SIZE=20;
+function filteredList(){
   var q=$('search-box').value.trim().toLowerCase();
-  var list=state.users.filter(function(r){
+  return state.users.filter(function(r){
+    if(filterProj && (r.proj||'')!==filterProj) return false;
+    if(filterOrg && (r.org||'')!==filterOrg) return false;
     if(!q) return true;
-    return (r.u+' '+r.n+' '+r.p).toLowerCase().indexOf(q)>=0;
+    return ((r.proj||'')+' '+(r.org||'')+' '+r.u+' '+(r.n||'')+' '+(r.phone||'')+' '+(r.p||'')).toLowerCase().indexOf(q)>=0;
   });
+}
+function refreshFilterSel(){
+  var sp=$('sel-proj'), so=$('sel-org');
+  var projs=uniqueOf(state.users,'proj');
+  sp.textContent='';
+  addOption(sp,'','项目名称（全部）');
+  projs.forEach(function(v){ addOption(sp,v,v, v===filterProj); });
+  so.textContent='';
+  var pool=filterProj? state.users.filter(function(r){ return (r.proj||'')===filterProj; }) : state.users;
+  var orgs=uniqueOf(pool,'org');
+  addOption(so,'','单位名称（全部）');
+  orgs.forEach(function(v){ addOption(so,v,v, v===filterOrg); });
+  if(filterOrg && orgs.indexOf(filterOrg)<0){ filterOrg=''; so.selectedIndex=0; }
+}
+function addOption(sel,val,text,selected){
+  var o=document.createElement('option');
+  o.value=val; o.textContent=text;
+  if(selected) o.selected=true;
+  sel.appendChild(o);
+}
+function uniqueOf(arr,key){
+  var seen={}, out=[];
+  arr.forEach(function(r){ var v=r[key]||''; if(v && !seen[v]){ seen[v]=1; out.push(v); } });
+  return out.sort();
+}
+function renderTable(){
   var tb=$('tbody');
   tb.textContent='';
-  list.forEach(function(r){
+  var list=filteredList();
+  var pages=Math.max(1, Math.ceil(list.length/PAGE_SIZE));
+  if(pageNo>pages) pageNo=pages;
+  if(pageNo<1) pageNo=1;
+  var slice=list.slice((pageNo-1)*PAGE_SIZE, pageNo*PAGE_SIZE);
+  var hideProj=!!filterProj, hideOrg=!!filterOrg;
+  document.querySelector('th.h-proj').classList.toggle('hidden', hideProj);
+  document.querySelector('th.h-org').classList.toggle('hidden', hideOrg);
+  slice.forEach(function(r){
     var tr=document.createElement('tr');
-    [r.u, r.n, r.p].forEach(function(val, idx){
+    var cells=[
+      {v:r.proj||'', w:'w-proj', hide:hideProj},
+      {v:r.org||'',  w:'w-org',  hide:hideOrg},
+      {v:r.u||'',    w:'w-user'},
+      {v:r.n||'',    w:'w-name'},
+      {v:r.phone||'',w:'w-phone'},
+      {v:r.p||'',    w:'w-plate'}
+    ];
+    cells.forEach(function(c){
       var td=document.createElement('td');
-      if(idx===2) td.className='plate-cell';
-      td.textContent=val;
+      if(c.hide){ td.className='hidden'; tr.appendChild(td); return; }
+      var sp=document.createElement('span');
+      sp.className='cell-w '+c.w;
+      sp.textContent=c.v;
+      td.appendChild(sp);
       tr.appendChild(td);
     });
     var tdQ=document.createElement('td');
     tdQ.className='qr-cell';
     var cv=document.createElement('canvas');
     cv.className='qr-thumb'; cv.title='点击放大';
-    drawQr(cv, ticketUrl(r), 48);
+    drawQr(cv, ticketUrl(r), 20);
     cv.addEventListener('click', function(){ openQrBig(r); });
     tdQ.appendChild(cv);
     tr.appendChild(tdQ);
@@ -786,10 +855,16 @@ function renderTable(){
     tr.appendChild(tdOp);
     tb.appendChild(tr);
   });
-  $('empty-tip').classList.toggle('hidden', state.users.length>0);
+  $('empty-tip').classList.toggle('hidden', list.length>0);
   $('row-count').textContent=(list.length===state.users.length)
     ? '共 '+state.users.length+' 人'
     : '匹配 '+list.length+' / '+state.users.length+' 人';
+  var pager=$('pager');
+  pager.classList.toggle('hidden', pages<=1);
+  $('pg-info').textContent='第 '+pageNo+'/'+pages+' 页';
+  $('pg-prev').disabled=pageNo<=1;
+  $('pg-next').disabled=pageNo>=pages;
+  refreshFilterSel();
 }
 
 // ---------- 添加 / 编辑用户 ----------
@@ -798,10 +873,10 @@ function closeModal(id){ $(id).classList.remove('open'); }
 function openAdd(){
   editingKey=null;
   $('edit-title').textContent='添加用户';
-  $('f-user').value=''; $('f-name').value=''; $('f-plate').value='';
+  ['f-proj','f-org','f-user','f-name','f-phone','f-plate'].forEach(function(id){ $(id).value=''; });
   $('edit-err').textContent='';
   openModal('modal-edit');
-  $('f-user').focus();
+  $('f-proj').focus();
 }
 function openEdit(u){
   var r=null;
@@ -809,24 +884,29 @@ function openEdit(u){
   if(!r) return;
   editingKey=u;
   $('edit-title').textContent='编辑用户';
-  $('f-user').value=r.u; $('f-name').value=r.n; $('f-plate').value=r.p;
+  $('f-proj').value=r.proj||''; $('f-org').value=r.org||'';
+  $('f-user').value=r.u||''; $('f-name').value=r.n||'';
+  $('f-phone').value=r.phone||''; $('f-plate').value=r.p||'';
   $('edit-err').textContent='';
   openModal('modal-edit');
 }
 function applyEdit(){
-  var u=$('f-user').value.trim(), n=$('f-name').value.trim(), p=$('f-plate').value.trim();
+  var pr=$('f-proj').value.trim(), o=$('f-org').value.trim();
+  var u=$('f-user').value.trim(), n=$('f-name').value.trim();
+  var ph=$('f-phone').value.trim(), p=$('f-plate').value.trim();
   var errEl=$('edit-err');
   errEl.textContent='';
-  if(!u||!n||!p){ errEl.textContent='用户名、姓名、车牌号均不能为空'; return; }
+  if(!pr||!o||!u||!n||!p){ errEl.textContent='项目名称、单位名称、用户名、姓名、车牌号均不能为空'; return; }
   if(u===ADMIN_USER){ errEl.textContent='该用户名为管理员保留名'; return; }
-  if(u.length>32||n.length>32||p.length>16){ errEl.textContent='超出长度限制'; return; }
+  if(pr.length>64||o.length>64||u.length>32||n.length>32||ph.length>16||p.length>16){ errEl.textContent='超出长度限制'; return; }
   var dup=state.users.some(function(r){ return r.u===u && r.u!==editingKey; });
-  if(dup){ errEl.textContent='用户名已存在'; return; }
+  if(dup){ errEl.textContent='用户名已存在，请修改'; toast('⚠ 用户名「'+u+'」已存在，请修改后重试', 3000); return; }
+  var rec={u:u, proj:pr, org:o, n:n, phone:ph, p:p};
   if(editingKey===null){
-    state.users.push({u:u, n:n, p:p});
+    state.users.push(rec);
   }else{
     for(var i=0;i<state.users.length;i++){
-      if(state.users[i].u===editingKey){ state.users[i]={u:u, n:n, p:p}; break; }
+      if(state.users[i].u===editingKey){ state.users[i]=rec; break; }
     }
   }
   markDirty();
@@ -851,11 +931,12 @@ function parseImport(text){
     var line=lines[i].trim();
     if(!line) continue;
     var parts=line.split(/[\s,，、]+/).map(function(s){ return s.trim(); }); // 半角/全角逗号、顿号、空格、制表符任意混用
-    if(parts.length>=3 && parts[0]==='用户名' && parts[1]==='姓名'){ header++; continue; } // 表头=首列用户名次列姓名（防止数据值含关键词被误杀）
-    if(parts.length<3){ bad++; continue; }
-    var u=parts[0], n=parts[1], p=parts.slice(2).join('');
-    if(!u||!n||!p||u.length>32||n.length>32||p.length>16||u===ADMIN_USER){ bad++; continue; }
-    rows.push({u:u, n:n, p:p});
+    if(parts.length>=6 && parts[0]==='项目名称' && parts[1]==='单位名称'){ header++; continue; } // 新表头
+    if(parts.length>=3 && parts[0]==='用户名' && parts[1]==='姓名'){ header++; continue; } // 旧表头兼容
+    if(parts.length<6){ bad++; continue; }
+    var pr=parts[0], o=parts[1], u=parts[2], n=parts[3], ph=parts[4], p=parts.slice(5).join('');
+    if(!pr||!o||!u||!n||!p||pr.length>64||o.length>64||u.length>32||n.length>32||ph.length>16||p.length>16||u===ADMIN_USER){ bad++; continue; }
+    rows.push({u:u, proj:pr, org:o, n:n, phone:ph, p:p});
   }
   return {rows:rows, bad:bad, header:header};
 }
@@ -870,20 +951,28 @@ function applyImport(){
   var resEl=$('imp-result');
   resEl.textContent='';
   var r=parseImport(text);
-  if(!r.rows.length){ resEl.textContent='未识别到有效数据，请检查格式'; return; }
-  if($('imp-replace').checked) state.users=[];
+  if(!r.rows.length){ resEl.textContent='未识别到有效数据，请检查格式（每行：项目名称,单位名称,用户名,姓名,手机号,车牌号）'; return; }
+  // 唯一性检查：与现有用户重名 或 批内重名 → 整批阻止（不导入任何数据）
   var exist={};
   state.users.forEach(function(x){ exist[x.u]=1; });
-  var added=0, dup=0;
+  var dupNames=[], batchSeen={};
   r.rows.forEach(function(row){
-    if(exist[row.u]){ dup++; return; }
-    exist[row.u]=1;
-    state.users.push(row);
-    added++;
+    if(exist[row.u] && dupNames.indexOf(row.u)<0) dupNames.push(row.u);
+    if(batchSeen[row.u]){ if(dupNames.indexOf(row.u)<0) dupNames.push(row.u); }
+    batchSeen[row.u]=1;
   });
+  if(dupNames.length){
+    var msg='⚠ 用户名重复，本次导入已全部取消，请修改后重试：'+dupNames.join('、');
+    resEl.textContent=msg;
+    toast(msg, 3000);
+    return;
+  }
+  if($('imp-replace').checked) state.users=[];
+  r.rows.forEach(function(row){ state.users.push(row); });
   markDirty();
+  pageNo=1;
   renderTable();
-  var msg='导入完成：新增 '+added+' 人，跳过重复 '+dup+' 人'
+  var msg='导入完成：新增 '+r.rows.length+' 人'
     +(r.bad?'，无效 '+r.bad+' 行':'')+(r.header?'，表头 '+r.header+' 行':'');
   resEl.textContent=msg;
   closeModal('modal-import');
@@ -893,8 +982,8 @@ function applyImport(){
 // ---------- CSV 导出 ----------
 function buildCsv(){
   var esc=function(s){ return '"'+String(s).replace(/"/g,'""')+'"'; };
-  var lines=['用户名,姓名,车牌号'];
-  state.users.forEach(function(r){ lines.push([r.u,r.n,r.p].map(esc).join(',')); });
+  var lines=['项目名称,单位名称,用户名,姓名,手机号,车牌号'];
+  filteredList().forEach(function(r){ lines.push([r.proj||'',r.org||'',r.u,r.n||'',r.phone||'',r.p||''].map(esc).join(',')); });
   return '\uFEFF'+lines.join('\r\n');
 }
 function downloadText(filename, text, mime){
@@ -996,7 +1085,7 @@ function serializePage(appDataObj){
   root.querySelector('#view-login').classList.remove('hidden');
   root.querySelector('#view-user').classList.add('hidden');
   root.querySelector('#view-admin').classList.add('hidden');
-  ['#login-err','#u-name','#u-plate','#data-time','#sync-note','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
+  ['#login-err','#u-proj','#u-org','#u-name','#u-phone','#u-plate','#data-time','#sync-note','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
     var n=root.querySelector(s); if(n) n.textContent='';
   });
   var sn=root.querySelector('#sync-note'); if(sn) sn.classList.add('hidden');
@@ -1079,7 +1168,21 @@ function boot(){
       askConfirm('有未保存更改，退出后将丢失，确定退出？', function(){ doLogout(); });
     }else doLogout();
   });
-  $('search-box').addEventListener('input', renderTable);
+  $('search-box').addEventListener('input', function(){ pageNo=1; renderTable(); });
+  $('sel-proj').addEventListener('change', function(){
+    filterProj=$('sel-proj').value; filterOrg=''; pageNo=1; renderTable();
+  });
+  $('sel-org').addEventListener('change', function(){
+    filterOrg=$('sel-org').value; pageNo=1; renderTable();
+  });
+  $('btn-filter-reset').addEventListener('click', function(){
+    filterProj=''; filterOrg=''; pageNo=1;
+    $('search-box').value='';
+    renderTable();
+    toast('筛选已重置');
+  });
+  $('pg-prev').addEventListener('click', function(){ if(pageNo>1){ pageNo--; renderTable(); } });
+  $('pg-next').addEventListener('click', function(){ pageNo++; renderTable(); });
   $('btn-add').addEventListener('click', openAdd);
   $('btn-edit-ok').addEventListener('click', applyEdit);
   $('btn-import').addEventListener('click', function(){
@@ -1152,7 +1255,10 @@ function tryScanTicket(){
         if(pay&&pay.u){
           var h=uHashHex(auth.kq, pay.u);
           if((auth.qh||[]).indexOf(h)>=0){
+            $('u-proj').textContent=pay.proj||'';
+            $('u-org').textContent=pay.org||'';
             $('u-name').textContent=pay.n||'';
+            $('u-phone').textContent=pay.phone||'';
             $('u-plate').textContent=pay.p||'';
             $('u-qr-wrap').style.display='none'; // 保安扫码场景不展示二维码区块（img 空 src 会渲染 alt+坏图占位）
             $('u-qr-img').removeAttribute('src');
@@ -1181,7 +1287,9 @@ window.__t={
     for(var i=0;i<state.users.length;i++) if(state.users[i].u===u) return ticketUrl(state.users[i]);
     return null;
   },
-  qrLibOk: function(){ return (typeof qrcode==='function'); }
+  qrLibOk: function(){ return (typeof qrcode==='function'); },
+  buildCsv: function(){ return (session&&session.role==='admin') ? buildCsv() : null; },
+  filterState: function(){ return {proj:filterProj, org:filterOrg, page:pageNo}; }
 };
 })();
 </script>
