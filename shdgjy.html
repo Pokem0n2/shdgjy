@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.1 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -60,8 +60,14 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
 table{border-collapse:collapse}
 th,td{font-size:13px;vertical-align:middle}
-.cell-w{display:inline-block;overflow-wrap:anywhere;vertical-align:middle}
-.w-proj{max-width:20ch}.w-org{max-width:20ch}.w-user{max-width:10ch}.w-name{max-width:8ch}.w-phone{max-width:11ch}.w-plate{max-width:8ch}
+.cell-w{display:inline-block;white-space:nowrap;vertical-align:middle} /* 默认自适应单行；超宽时由 .wrap-mode 启用断行 */
+.table-wrap.wrap-mode .cell-w{white-space:normal;overflow-wrap:anywhere}
+.table-wrap.wrap-mode .w-proj{max-width:20ch}
+.table-wrap.wrap-mode .w-org{max-width:20ch}
+.table-wrap.wrap-mode .w-user{max-width:10ch}
+.table-wrap.wrap-mode .w-name{max-width:8ch}
+.table-wrap.wrap-mode .w-phone{max-width:11ch}
+.table-wrap.wrap-mode .w-plate{max-width:8ch}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
 .pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
 .pager{display:flex;align-items:center;gap:10px}
@@ -202,7 +208,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.0</footer>
+<footer>shdgjy v0.10.1</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -287,7 +293,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"5c553b5cdecae8ae2007620ea4b9bd0e","sU":"14816149e42cab3d68cdc201a78349de","sW":"3e666f06285e1b367181ca5161f52357","aV":"2ccfcbfd56915decd98476299f2adbfa4b6032a3f7e9e8abb341599a256930e6","uV":"ac1046a72908e415ba84ac9f62e75dad691bb3a53e32a8415690f56a1b157363","e1":"jOkNUvJwK3sVYosEM/YAhW4vqMOin795pX1Xj9eEPmuHoUTplnZagkyugy3EvxkrSlwKciCMkgBBEshuL/dLALYQ3qOKHzNRVNwqd9LiplT0pGv7AgHfazz81WRd+3+2La+xU1XrnCn8lgLKaZYiwj0UXajgRx4Jf21PSiSH4Q==","e2":"FPuYlRHEbRToLzdfumSoQo8dFvD7fTj0FLAq2OsMdeAX3n4+7RRnty6Fen2a4npj3RET0UDds2knYllebnrXnIy+qmaLVeu2y48QsfMLQuJD0tN9M9UxlUzeC9u/pXPhcVydi0xYmed+hF3A4c4NdPu9O1KiYgkrLr3F4f3umA=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"7f099b295defe5be20d3b8841651be85","sU":"011ab1defcc8802d9a479583eaae4928","sW":"796a688bf684fb2acd59b6ad3fee15cd","aV":"bf80dcc97dac412c3f372516675f58eec5a4505e472172afeff435d7087978b8","uV":"ae76560155f85a404013ebd5b03b5402a9b22ed2885b48b17aad1a586d1bb561","e1":"rpcLaV/auzt/K0gHQE0Pl1N7Y0+HUnTRKUWRtpCX/okESWMgI1ZuKF2IiDzSpRyS39jF8ZR5k50V6vkJCLfCkO2u9bodHxle8NTCnPv0HESEbSJuYxB1aY77vJNiWX4VtgY22IR10FZSkaAiCoxBjd0+J8ZoZP73hq5VPzVqDw==","e2":"BlgG0v4ddXm4zWqgRLZt4jL4vRpRfD7KLVGhTWm1h33ix7M13t0W+Kfae0iciKGGci7LXyptU8SZOztz0/l4E+xt9cFgbs7njMvVCJjJ84Q+FrHG71ie09JA4Mb+uHqXGjO1sC/70tiyGEzyuDHtbJuXYUqv57oA5yqjxPmmdQ=="}</script>
 <script>
 (function(){
 'use strict';
@@ -537,7 +543,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.0';
+var APP_VERSION='0.10.1';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -579,8 +585,8 @@ function initConn(){
 }
 function whenConnReady(fn){ if(conn.ready) fn(); else (connReady||Promise.resolve()).then(fn); }
 function refreshAfterSync(){
-  // 管理员会话建立在旧数据上时，重载以最新数据为准（窗口极小）
-  if(session&&session.role==='admin'&&conn.mode==='online'){ location.reload(); return; }
+  // 注：历史上这里对 online 管理员会话做整页强刷——与自动登录组合成死循环
+  // （重载→自动登录→竞态用内嵌快照→又 reload）。登录已强制等 conn 就绪，不再需要重载。
   if(session&&session.role==='admin') updateSyncUi();
 }
 function updateSyncUi(){
@@ -615,7 +621,9 @@ function doLogin(){
   if(!u||!p){ errEl.textContent='请输入用户名和密码'; return; }
   var btn=$('btn-login');
   btn.disabled=true; btn.textContent='验证中…';
-  setTimeout(function(){
+  // 必须等接口探测完成：conn 未就绪时 auth 可能仍是内嵌静态快照，
+  // 用它登录线上环境会得到过期数据（历史上曾因此死循环+旧数据覆盖服务器）
+  whenConnReady(function(){ setTimeout(function(){
     var fail=function(){ clearAuth(); toast('❌核验未通过，请重试！'); };
     try{
       if(u===ADMIN_USER){
@@ -655,7 +663,7 @@ function doLogin(){
     }
     btn.disabled=false; btn.textContent='登 录';
     $('li-pass').value='';
-  }, 30);
+  }, 30); });
 }
 
 // ---------- 管理员会话 ----------
@@ -865,6 +873,12 @@ function renderTable(){
   $('pg-prev').disabled=pageNo<=1;
   $('pg-next').disabled=pageNo>=pages;
   refreshFilterSel();
+  // 列宽三级策略：自适应优先；全表超宽时启用断行（按各列设定宽度）；仍放不下由 wrap 的 overflow-x 横滚兜底
+  var wrapEl=document.querySelector('.table-wrap'), tbl=document.querySelector('table');
+  if(wrapEl&&tbl){
+    wrapEl.classList.remove('wrap-mode');
+    if(tbl.scrollWidth>wrapEl.clientWidth+1) wrapEl.classList.add('wrap-mode');
+  }
 }
 
 // ---------- 添加 / 编辑用户 ----------

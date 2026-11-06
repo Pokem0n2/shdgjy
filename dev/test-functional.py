@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.0'
+VERSION = 'v0.10.1'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -380,20 +380,23 @@ try:
     ok('Q7 登录页展示自己的二维码图', _src.startswith('data:image/png'), _src[:30])
     ok('Q7 登录场景二维码区块可见', jsx("return document.getElementById('u-qr-wrap').offsetParent") is not None)
     t0 = time.time()
-    while time.time() - t0 < 3:
-        if (jsx("return document.getElementById('u-qr-img').naturalWidth") or 0) >= 400: break
+    while time.time() - t0 < 6:
+        if jsx("var i=document.getElementById('u-qr-img'); return i.complete && i.naturalWidth>=400") is True: break
         time.sleep(0.15)
-    ok('Q7 二维码居中显示',
-       jsx("var b=document.getElementById('u-qr-img').getBoundingClientRect(); var c=document.getElementById('u-qr-wrap').getBoundingClientRect(); return Math.abs((b.left+b.right)/2-(c.left+c.right)/2)<10") is True and
-       (jsx("return document.getElementById('u-qr-img').naturalWidth") or 0) >= 400)
+    time.sleep(1.2)  # 视图切换动画 settle
+    _geo = jsx("var b=document.getElementById('u-qr-img').getBoundingClientRect(); var c=document.getElementById('u-qr-wrap').getBoundingClientRect(); return [Math.round(b.left),Math.round(b.right),Math.round(c.left),Math.round(c.right),Math.round((b.left+b.right)/2-(c.left+c.right)/2), document.getElementById('u-qr-img').naturalWidth]")
+    print('  [Q7geo] img[l,r]=', _geo[0] if _geo else None, _geo[1] if _geo else None, '| wrap[l,r]=', _geo[2] if _geo else None, _geo[3] if _geo else None, '| 中心差=', _geo[4] if _geo else None, '| naturalWidth=', _geo[5] if _geo else None)
+    ok('Q7 二维码居中显示', _geo and abs(_geo[4]) < 10 and _geo[5] >= 400, str(_geo))
     shot('q7-user-selfqr.png')
     jsx("document.getElementById('u-qr-img').click(); return null")
     t0 = time.time()
-    while time.time() - t0 < 3:
-        if (jsx("return document.getElementById('qr-big-img').naturalWidth") or 0) >= 400: break
+    while time.time() - t0 < 6:
+        if jsx("var i=document.getElementById('qr-big-img'); return i.complete && i.naturalWidth>=400 && document.getElementById('modal-qr').classList.contains('open')") is True: break
         time.sleep(0.15)
-    ok('Q7 点击放大浮窗', jsx("return document.getElementById('modal-qr').classList.contains('open')") is True and
-       (jsx("return document.getElementById('qr-big-img').naturalWidth") or 0) >= 400)
+    ok('Q7 点击放大浮窗',
+       jsx("var i=document.getElementById('qr-big-img'); return document.getElementById('modal-qr').classList.contains('open') && i.complete && i.naturalWidth>=400") is True,
+       f"modal={jsx(chr(114)+'eturn document.getElementById(0)')} " if False else
+       f"naturalWidth={jsx('return document.getElementById(0),0')}" if False else '见现场打印')
     jsx("document.getElementById('modal-qr').click(); return null"); time.sleep(0.3)
     zr2 = subprocess.run(['zbarimg', '-q', '--raw', os.path.join(HERE, 'shots', 'q7-user-selfqr.png')],
                          capture_output=True, text=True)
@@ -465,6 +468,41 @@ try:
     time.sleep(0.5)
     ok('Q9 已退出到登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
 
+    # ============ 阶段 T：conn 竞态事故链（死循环+旧数据覆盖修复验证） ============
+    print('== 阶段T：conn竞态 ==')
+    # T0 产品代码形态：登录主体必须被 whenConnReady 包裹；不再有 location.reload 强刷
+    _src = open(os.path.join(HERE, '..', 'shdgjy.html'), encoding='utf-8').read()
+    ok('T0 doLogin主体由whenConnReady包裹', 'whenConnReady(function(){ setTimeout(function(){' in _src)
+    ok('T0 无location.reload调用', _src.count('location.reload(') == 0)
+    # T1 服务器不可达(offline)时登录：用内嵌快照、离线提示、且绝不死循环
+    subprocess.run(DOCKER + ['stop', API_CONTAINER], stdout=subprocess.DEVNULL)
+    jsx("try{localStorage.removeItem('shdgjy-auth')}catch(e){}; window.__noloop=1; return 1")
+    goto(BASE_ON + '/shdgjy.html'); time.sleep(9.5)  # WebDriver 同URL导航会重载页面；等 fetch 8s 超时 → offline
+    jsx("window.__noloop=1; return 1")  # 重载后再注入观察标记
+    jsx("document.getElementById('li-user').value='user';document.getElementById('li-pass').value='admin';"
+        "document.getElementById('btn-login').click(); return 1")
+    t0 = time.time()
+    while time.time() - t0 < 12:
+        if jsx("return !document.getElementById('view-admin').classList.contains('hidden')"): break
+        time.sleep(0.2)
+    time.sleep(2)
+    ok('T1 offline登录成功(内嵌兜底)', jsx("return !document.getElementById('view-admin').classList.contains('hidden')") is True)
+    ok('T1 离线模式提示', '离线模式' in txt('sync-note'), txt('sync-note'))
+    ok('T1 无页面重载(不死循环)', jsx("return window.__noloop") == 1)
+    # T2 offline 保存绝不写服务器（防内嵌旧数据覆盖线上数据的事故链）
+    jsx("window.__posts=0; var _of=window.fetch; window.fetch=function(u,o){ if(o&&o.method==='POST') window.__posts++; return _of.apply(this,arguments)}; return 1")
+    click('btn-save'); time.sleep(3)
+    ok('T2 offline保存不发POST(零覆盖风险)', (jsx("return window.__posts") or 0) == 0,
+       f"POST次数={jsx('return window.__posts')}")
+    ok('T2 页面仍稳定(保存后无循环)', jsx("return window.__noloop") == 1)
+    click('btn-logout-a'); time.sleep(0.3)
+    if jsx("return document.getElementById('modal-confirm').classList.contains('open')") is True:
+        click('btn-confirm-ok')
+    time.sleep(0.5)
+    # 恢复在线语境（S 组依赖服务器）
+    subprocess.run(DOCKER + ['start', API_CONTAINER], stdout=subprocess.DEVNULL)
+    time.sleep(1.5)
+
     # ============ 阶段 S：六字段 / 级联筛选 / 分页 / 唯一性 / 断行 ============
     print('== 阶段S：六字段+筛选+分页 ==')
     r, _ = do_login('user', 'newadmin77')
@@ -534,8 +572,10 @@ try:
     click('btn-edit-ok'); time.sleep(0.4)
     jsx("var e=document.getElementById('search-box');e.value='wrap1';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
     time.sleep(0.4)
+    # 桌面宽屏：8列自适应排布未超容器 → 不启用断行，长项目名单行
+    _wrapmode = jsx("return document.querySelector('.table-wrap').classList.contains('wrap-mode')")
     _rects = jsx("var sp=document.querySelector('#tbody tr td:first-child .cell-w');var rg=document.createRange();rg.selectNodeContents(sp);return [rg.getClientRects().length, Math.round(sp.getBoundingClientRect().width)]")
-    ok('S9 超长项目名按20字符断行', _rects and _rects[0] >= 2 and _rects[1] <= 150, str(_rects))
+    ok('S9 桌面自适应优先(不锁列宽不断行)', _wrapmode is False and _rects and _rects[0] == 1, f"wrap-mode={_wrapmode} rects={_rects}")
     jsx("var e=document.getElementById('search-box');e.value='';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
     time.sleep(0.3)
     jsx("document.getElementById('sel-proj').value='BK项目A';document.getElementById('sel-proj').dispatchEvent(new Event('change',{bubbles:true}));return 1")
@@ -617,6 +657,8 @@ try:
     m2 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var w=d.querySelector('.table-wrap'); return [w.scrollWidth, w.clientWidth, d.getElementById('tbody').rows.length]")
     ok('D2 390px表格数据可达(横滚允许)', m2 and m2[2] >= 3, str(m2))
+    _wm = jsx("var d=document.getElementById('f').contentWindow.document;return d.querySelector('.table-wrap').classList.contains('wrap-mode')")
+    ok('D2b 390px超宽时启用断行模式', _wm is True, str(_wm))
     m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var bts=d.querySelector('#tbody tr .op-stack').children;"
              "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"
