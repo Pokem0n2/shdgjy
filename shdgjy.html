@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shdgjy v0.10.2 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<!-- shdgjy v0.10.3 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -187,7 +187,7 @@ td.plate-cell{white-space:nowrap}
       <select id="sel-proj" class="filter-sel"><option value="">项目名称（全部）</option></select>
       <select id="sel-org" class="filter-sel"><option value="">单位名称（全部）</option></select>
       <button id="btn-filter-reset" class="btn subtle">重置筛选</button>
-      <input id="search-box" type="search" placeholder="搜索项目 / 单位 / 用户名 / 姓名 / 手机 / 车牌">
+      <input id="search-box" type="search" placeholder="点击此处开始搜索">
       <button id="btn-add" class="btn">添加用户</button>
       <button id="btn-import" class="btn subtle">批量导入</button>
       <button id="btn-csv" class="btn subtle">导出CSV</button>
@@ -212,7 +212,7 @@ td.plate-cell{white-space:nowrap}
   </section>
 
 </main>
-<footer>shdgjy v0.10.2</footer>
+<footer>shdgjy v0.10.3</footer>
 
 <!-- 添加 / 编辑用户 -->
 <div id="modal-edit" class="modal">
@@ -297,7 +297,7 @@ td.plate-cell{white-space:nowrap}
 <div id="modal-qr" class="modal"><div class="qr-card"><img id="qr-big-img" alt="二维码放大"><div class="qr-cap" id="qr-cap"></div></div></div>
 <div id="toast" class="toast"></div>
 
-<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"d2ebfc5762274bef7e6c4c3a89305c63","sU":"39421a3b1850005a8137a0d4f8ac1fbc","sW":"bb148afd8d66f4f6522bc68dce1518b5","aV":"ddc331340cbc999eeb604850edc9a6d856d9e338e22d9758f2bcc97bd81262fb","uV":"2e9cbbd850c4c77e7e03a8841f00d91ddb20e674c3bd7c34d68538f3774b5421","e1":"lRdExisSnFgTWh0HQ7VWTKZlwfbqcHrVFQXbFNWt4ZSnE2dqenpCZPfd7aWWDwm+Ffy7rRcC8uhCH7EvESMHpusYcDDqewDq65qZY6tKQGdXXTLcbA1uFK+naXMMW9qUgsSNi18V2xZpU1Ef1LqNZRYHkmBLI3yX3dTfnkVW8w==","e2":"bSgDuq43hVIYF9UPfv0Z61f8IapXlHP6Rv2OV37xNwgWxDnBDwRZyPlZojaB2i9jfBpE14FrG74rCawSRMtlKNhMRVaza5pxKKsWS/uLLvupfxiMeG1Oxpuhu7J6JgxcevhLwDXOvFyAw9JaC1H1jc4hnbKHYGjQg+CncuCK9w=="}</script>
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"222f6d973247adbfaf143cde954c2ae4","sU":"0bd68f27f8eca4084bead112e95987a3","sW":"ebb7415e733f0f535b172788af57fb68","aV":"10d4bda060614db825a3ca1477fcf34da39dba67374cada4732f5739405be1d1","uV":"6b3eaabf2e628e0ffd32ed37ede8454b83a233d026d8c6434c3e498f189031ec","e1":"U0hjuX8f8+BZzsk7I9S9P1AcDi8Cc37a0kmOsiICIlwg+95PgrXRdiZpuVrGVfgOR2HXXsBEyBBDoyggQNaArJipUm5O+nAqSQI+DoK7eO6PUAy7jbCvlZNvi1iDb4D/YmPSVrBJARCc1e7seQGcZ2qrRBsgGRevue2TQSBK4Q==","e2":"l7LgnHxoDzgT2sNphI/lNieXciudkqM3uUe3g6lh55IY0fOzhXicMXRyAB9TERU5ncE3YUH8/oTz6OAIQHaaVTIok8oTvbpoojeIaojrfzJWxdPlEpF2Mwyj85qQeq1+ZlaIO1pBFTZHBu11xRkR2jhwUp2RfWA9/02H9FbP4w=="}</script>
 <script>
 (function(){
 'use strict';
@@ -547,7 +547,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ============================================================
  * 应用逻辑
  * ============================================================ */
-var APP_VERSION='0.10.2';
+var APP_VERSION='0.10.3';
 var ADMIN_USER='user';
 var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
 var IDLE_MS=10*60*1000; // 管理员空闲自动退出
@@ -732,6 +732,12 @@ function doLogout(msg){
 // ---------- 二维码（一人一码；票据自包含用户信息，仅绑用户名不绑密码） ----------
 function uHashHex(kqHex, u){
   return bytesToHex(hmacSha256(hexToBytes(kqHex), utf8Bytes('qh|'+u))).slice(0,32);
+}
+// 车牌格式化：去现有空格后，若为 汉字+字母+其余 → 在字母后插半角空格（如 沪ABV2070 → 沪A BV2070）；幂等
+function normalizePlate(p){
+  var s=String(p||'').replace(/\s+/g,'');
+  var m=s.match(/^([\u4e00-\u9fa5])([A-Za-z])(.+)$/);
+  return m ? (m[1]+m[2].toUpperCase()+' '+m[3]) : s;
 }
 function ticketUrl(user){
   var kqHex=(state&&state.kq)||auth.kq;
@@ -927,7 +933,7 @@ function openEdit(u){
 function applyEdit(){
   var pr=$('f-proj').value.trim(), o=$('f-org').value.trim();
   var u=$('f-user').value.trim(), n=$('f-name').value.trim();
-  var ph=$('f-phone').value.trim(), p=$('f-plate').value.trim();
+  var ph=$('f-phone').value.trim(), p=normalizePlate($('f-plate').value.trim());
   var errEl=$('edit-err');
   errEl.textContent='';
   if(!pr||!o||!u||!n||!p){ errEl.textContent='项目名称、单位名称、用户名、姓名、车牌号均不能为空'; return; }
@@ -968,7 +974,7 @@ function parseImport(text){
     if(parts.length>=6 && parts[0]==='项目名称' && parts[1]==='单位名称'){ header++; continue; } // 新表头
     if(parts.length>=3 && parts[0]==='用户名' && parts[1]==='姓名'){ header++; continue; } // 旧表头兼容
     if(parts.length<6){ bad++; continue; }
-    var pr=parts[0], o=parts[1], u=parts[2], n=parts[3], ph=parts[4], p=parts.slice(5).join('');
+    var pr=parts[0], o=parts[1], u=parts[2], n=parts[3], ph=parts[4], p=normalizePlate(parts.slice(5).join(''));
     if(!pr||!o||!u||!n||!p||pr.length>64||o.length>64||u.length>32||n.length>32||ph.length>16||p.length>16||u===ADMIN_USER){ bad++; continue; }
     rows.push({u:u, proj:pr, org:o, n:n, phone:ph, p:p});
   }

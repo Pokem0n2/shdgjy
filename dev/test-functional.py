@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.2'
+VERSION = 'v0.10.3'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -246,7 +246,7 @@ try:
     ok('A11 刷新后连接 online', wait_conn() == 'online')
     r, _ = do_login('chen1', 'shdgjy2026ok')
     ok('A11 新设备普通用户登录(服务器数据)', r == 'user')
-    ok('A11 核验信息正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345')
+    ok('A11 核验信息正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A 12345')
     shot('a11-user.png')
     click('btn-logout-u'); time.sleep(0.4)
 
@@ -331,7 +331,7 @@ try:
         time.sleep(0.2)
     _vu = jsx("return !document.getElementById('view-user').classList.contains('hidden')")
     ok('Q5 扫码直达核验通过页', _vu is True, f'conn={_mode} view-user={_vu} 用时{time.time()-t0:.1f}s')
-    ok('Q5 扫码展示姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A12345', txt('u-name') + '/' + txt('u-plate'))
+    ok('Q5 扫码展示姓名车牌正确', txt('u-name') == '陈大山峰' and txt('u-plate') == '沪A 12345', txt('u-name') + '/' + txt('u-plate'))
     ok('Q5 扫码直达不展示二维码(保安场景)',
        (jsx("return document.getElementById('u-qr-wrap').offsetParent") is None) and
        not (jsx("return document.getElementById('u-qr-img').getAttribute('src')") or ''))
@@ -457,7 +457,7 @@ try:
     print('  [Q9n0] _n0=', repr(_n0), '| row-count repr=', repr(txt('row-count')), '| 计算=', repr(int(txt('row-count').split()[1])), '期望', _n0+3)
     ok('Q9 混用分隔符导入3人(表头已跳过/坏行已拒)', int(txt('row-count').split()[1]) == _n0 + 3, txt('row-count'))
     _row = jsx("return [].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent==='mix3'})[0].cells[5].textContent")
-    ok('Q9 车牌内空格自动拼合', _row == '沪Z90003', repr(_row))
+    ok('Q9 车牌拼合+字母后自动加空格', _row == '沪Z 90003', repr(_row))
     ok('Q9 结果含表头计数', '表头 1' in (jsx("return document.getElementById('imp-result').textContent") or ''),
        jsx("return document.getElementById('imp-result').textContent"))
     time.sleep(4.2)
@@ -466,6 +466,35 @@ try:
         click('btn-confirm-ok')
     time.sleep(0.5)
     ok('Q9 已退出到登录页', jsx("return !document.getElementById('view-login').classList.contains('hidden')") is True)
+
+    # ============ 阶段 F：车牌自动格式化 + placeholder ============
+    print('== 阶段F：车牌格式化 ==')
+    r, _ = do_login('user', 'newadmin77')
+    ok('F0 管理员登录', r == 'admin', r)
+    ok('F1 搜索框placeholder', jsx("return document.getElementById('search-box').placeholder") == '点击此处开始搜索',
+       jsx("return document.getElementById('search-box').placeholder"))
+    click('btn-import'); time.sleep(0.3)
+    _fimp = ('PX项目,一公司,fmt1,格式甲,13800000021,京B12345' + chr(10)
+             + 'PX项目,一公司,fmt2,格式乙,13800000022,沪A BV2070' + chr(10)
+             + 'PX项目,一公司,fmt3,格式丙,13800000023,粤AD12345')
+    jsx("document.getElementById('imp-text').value=" + json.dumps(_fimp) + "; return 1")
+    click('btn-imp-ok'); time.sleep(0.6)
+    _plates = jsx("return [].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent.indexOf('fmt')===0}).map(function(tr){return tr.cells[5].textContent.trim()})")
+    ok('F2 导入车牌自动格式化(第2位字母后加空格,幂等)', _plates == ['京B 12345', '沪A BV2070', '粤A D12345'], str(_plates))
+    # 编辑无空格旧车牌 → 保存后自动补空格（幂等）
+    jsx("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent==='fmt1'})[0];"
+        "if(row){row.querySelector('.row-btn').click()} return row?1:0")
+    time.sleep(0.2)
+    jsx("document.getElementById('f-plate').value='京B67890'; return 1")
+    click('btn-edit-ok'); time.sleep(0.3)
+    _p2 = jsx("return [].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent==='fmt1'})[0].cells[5].textContent.trim()")
+    ok('F3 编辑车牌格式化', _p2 == '京B 67890', repr(_p2))
+    # 撤销编辑现场（删 fmt 用户，避免污染后续）
+    for u in ['fmt1','fmt2','fmt3']:
+        jsx("var row=[].slice.call(document.querySelectorAll('#tbody tr')).filter(function(tr){return tr.cells[2].textContent==="+json.dumps(u)+"})[0];"
+            "if(row){row.querySelector('.row-btn.del').click(); document.getElementById('btn-confirm-ok').click()} return 1")
+        time.sleep(0.2)
+    time.sleep(3.2)
 
     # ============ 阶段 T：conn 竞态事故链（死循环+旧数据覆盖修复验证） ============
     print('== 阶段T：conn竞态 ==')
