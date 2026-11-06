@@ -60,7 +60,11 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
 table{border-collapse:collapse;width:100%;table-layout:fixed}
 th,td{font-size:13px;vertical-align:middle}
-.cell-w{display:block;overflow-wrap:anywhere;vertical-align:middle} /* 列宽：电脑按比例分配；手机竖屏按字符数写死（见媒体查询），内容超出列宽在列内断行 */
+.cell-w{display:block;overflow-wrap:anywhere;vertical-align:middle} /* 列宽：电脑按比例分配；手机竖屏按字符数写死（见 body.narrow 规则），内容超出列宽在列内断行 */
+.w-plate{white-space:nowrap} /* 车牌为短标识，全端不拆行（列宽有 min-width 兜底保证整串放下） */
+th[data-col="plate"]{min-width:84px} /* 固定尺寸内容列最小宽（CSS 层兜底；fixed 布局下 Firefox 忽略 th min-width，实际由 renderTable JS 测量兜底） */
+th[data-col="op"]{min-width:48px}
+th[data-col="qr"]{min-width:36px}
 body.narrow table{width:auto;min-width:max-content} /* 列宽由 inline px 决定；宽度=列和，超出容器即左右滑动 */ /* 手机竖屏(JS 判定加类，规避 iframe 媒体查询怪癖)：写死列宽（px，按13px字号英字符宽6.5px换算断行字符数），数据区域左右滑动 */
 body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:195px}
 body.narrow th[data-col="user"]{width:130px}
@@ -69,8 +73,7 @@ body.narrow th[data-col="phone"]{width:98px}
 body.narrow th[data-col="plate"]{width:85px}
 body.narrow th[data-col="qr"]{width:33px}
 body.narrow th[data-col="op"]{width:38px}
-body.narrow .w-plate{white-space:nowrap} /* 车牌为短标识不拆行；列宽已保证标准牌与新能源牌整串放下 */
-body.narrow .row-btn{min-width:0;white-space:nowrap;padding:4px 2px} /* 38px 列内"编辑/删除"横排放下 */
+body.narrow .row-btn{padding:4px 2px} /* 38px 列内"编辑/删除"横排放下（nowrap 已全局） */
 body.narrow .qr-thumb{width:20px;max-width:20px}
 .w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
@@ -84,7 +87,7 @@ tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
 td.qr-cell{text-align:center;padding-left:2px;padding-right:2px}
 .op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
-.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:4px 5px;border-radius:6px;min-width:0;max-width:100%;white-space:normal;line-height:1.25} /* 窄列时文字自动换行，不撑破列宽 */
+.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:4px 5px;border-radius:6px;min-width:0;max-width:100%;white-space:nowrap;line-height:1.25} /* 按钮文字横排；列宽由 th min-width 兜底保证放下 */
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#c62828;font-weight:400}
 .empty{padding:34px 0;text-align:center}
@@ -790,8 +793,8 @@ function autoLogin(){
 var filterProj='', filterOrg='', pageNo=1, PAGE_SIZE=20;
 var cellsRatio=[
   {key:'proj', ratio:30}, {key:'org', ratio:30}, {key:'user', ratio:20},
-  {key:'name', ratio:10}, {key:'phone', ratio:15}, {key:'plate', ratio:10},
-  {key:'qr', ratio:5}, {key:'op', ratio:5}
+  {key:'name', ratio:10}, {key:'phone', ratio:15}, {key:'plate', ratio:10, minPx:84},
+  {key:'qr', ratio:5, minPx:36}, {key:'op', ratio:5, minPx:48}
 ];
 function filteredList(){
   var q=$('search-box').value.trim().toLowerCase();
@@ -854,6 +857,17 @@ function renderTable(){
     var c=cellsRatio.filter(function(x){ return x.key===key; })[0];
     th.style.width=c&&ratioSum ? (c.ratio/ratioSum*100).toFixed(3)+'%' : '';
   });
+  if(!narrow){
+    // fixed 布局忽略 th 的 CSS min-width（Firefox 实测），JS 测量兜底。
+    // 两遍法：先全部设完比例并强制 reflow，再统一测量——序贯设宽中途测量是中间态会误判
+    void document.querySelector('table').offsetWidth;
+    heads.forEach(function(th){
+      var key=th.getAttribute('data-col');
+      var c=cellsRatio.filter(function(x){ return x.key===key; })[0];
+      // 比例宽小于固定尺寸内容的最小需求（车牌84/码36/操作48）时改设 px
+      if(c&&c.minPx&&th.getBoundingClientRect().width<c.minPx) th.style.width=c.minPx+'px';
+    });
+  }
   slice.forEach(function(r){
     var tr=document.createElement('tr');
     var cells=[

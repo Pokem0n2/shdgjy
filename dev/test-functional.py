@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.7'
+VERSION = 'v0.10.8'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -646,10 +646,21 @@ try:
     time.sleep(0.4)
     # 比例分宽：项目/单位列宽应为 20/77×文字区（约26%），长内容(22英字符)桌面比例宽内单行或列宽内折行
     _ws = jsx("var hs=[].slice.call(document.querySelectorAll('thead th')).map(function(th){return Math.round(th.getBoundingClientRect().width)}); return hs")
-    ok('S9 比例分宽(项目=单位>用户名>手机>姓名=车牌)', _ws and _ws[0]==_ws[1] and _ws[2]>_ws[4] and _ws[4]>_ws[3] and _ws[3]==_ws[5], str(_ws))
-    ok('S9 码列=操作列(5份,均窄于姓名)', _ws and abs(_ws[6]-_ws[7])<=2 and _ws[6] < _ws[3], str(_ws))
+    ok('S9 比例分宽(项目=单位>用户名>手机>姓名)', _ws and _ws[0]==_ws[1] and _ws[2]>_ws[4] and _ws[4]>_ws[3], str(_ws))
+    ok('S9 固定内容列min-width兜底(车牌≥84/操作≥48/码≥36)', _ws and _ws[5]>=84 and _ws[7]>=48 and _ws[6]>=36, str(_ws))
     _rects = jsx("var sp=document.querySelector('#tbody tr td:first-child .cell-w');var rg=document.createRange();rg.selectNodeContents(sp);return [rg.getClientRects().length, Math.round(sp.getBoundingClientRect().width)]")
     ok('S9 长项目名不超出列宽', _rects and _rects[1] <= _ws[0] + 2, f"内容宽={_rects[1] if _rects else None} 列宽={_ws[0] if _ws else None}")
+    # S9c 桌面小窗口（800px）：比例列被压缩，但车牌 min-width 兜底不断行、按钮横排
+    api('POST', f'/session/{sid}/window/rect', {'width': 800, 'height': 900}); time.sleep(0.8)
+    _sm = jsx("return (function(){"
+        "var plateCell=document.querySelector('#tbody tr td:nth-child(6) .cell-w');"
+        "if(!plateCell) return null;"
+        "var rg=document.createRange(); rg.selectNodeContents(plateCell);"
+        "var plateTh=document.querySelector('th[data-col=plate]');"
+        "var btn=document.querySelector('#tbody tr .row-btn');"
+        "return [rg.getClientRects().length, Math.round(plateTh.getBoundingClientRect().width), Math.round(btn.getBoundingClientRect().height)]})()")
+    ok('S9c 800px桌面车牌单行+按钮横排', _sm and _sm[0]==1 and _sm[1]>=84 and _sm[2]<=32, str(_sm))
+    api('POST', f'/session/{sid}/window/rect', {'width': 2560, 'height': 1440}); time.sleep(0.8)
     jsx("var e=document.getElementById('search-box');e.value='';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
     time.sleep(0.3)
     jsx("document.getElementById('sel-proj').value='BK项目A';document.getElementById('sel-proj').dispatchEvent(new Event('change',{bubbles:true}));return 1")
