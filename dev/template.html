@@ -58,16 +58,20 @@ footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
 #search-box{flex:1;min-width:180px;height:40px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:15px;background:#fffdf9}
 #search-box:focus{outline:none;border-color:#b3653f}
 .table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
-table{border-collapse:collapse}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
 th,td{font-size:13px;vertical-align:middle}
-.cell-w{display:inline-block;white-space:nowrap;vertical-align:middle} /* 默认自适应单行；超宽时由 .wrap-mode 启用断行 */
-.table-wrap.wrap-mode .cell-w{white-space:normal;overflow-wrap:anywhere}
-.table-wrap.wrap-mode .w-proj{max-width:20ch}
-.table-wrap.wrap-mode .w-org{max-width:20ch}
-.table-wrap.wrap-mode .w-user{max-width:10ch}
-.table-wrap.wrap-mode .w-name{max-width:8ch}
-.table-wrap.wrap-mode .w-phone{max-width:11ch}
-.table-wrap.wrap-mode .w-plate{max-width:8ch}
+.cell-w{display:block;overflow-wrap:anywhere;vertical-align:middle} /* 列宽：电脑按比例分配；手机竖屏按字符数写死（见媒体查询），内容超出列宽在列内断行 */
+body.narrow table{width:auto;min-width:max-content} /* 列宽由 inline px 决定；宽度=列和，超出容器即左右滑动 */ /* 手机竖屏(JS 判定加类，规避 iframe 媒体查询怪癖)：写死列宽（px，按13px字号英字符宽6.5px换算断行字符数），数据区域左右滑动 */
+body.narrow th[data-col="proj"],body.narrow th[data-col="org"]{width:130px}
+body.narrow th[data-col="user"]{width:65px}
+body.narrow th[data-col="name"]{width:52px}
+body.narrow th[data-col="phone"]{width:72px}
+body.narrow th[data-col="plate"]{width:52px}
+body.narrow th[data-col="qr"]{width:34px}
+body.narrow th[data-col="op"]{width:60px}
+body.narrow .row-btn{min-width:48px;white-space:nowrap;padding:6px 6px}
+body.narrow .qr-thumb{width:20px;max-width:20px}
+.w-proj{}.w-org{}.w-user{}.w-name{}.w-phone{}.w-plate{}
 .filter-sel{height:36px;border:1px solid #ddd2c0;border-radius:8px;padding:0 6px;font-size:14px;background:#fffdf9;color:#4a4238;max-width:32vw}
 .pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
 .pager{display:flex;align-items:center;gap:10px}
@@ -77,9 +81,9 @@ td{padding:9px 6px;border-bottom:1px solid #f0e9dd}
 tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#faf6ee}
 th.op,td.op{text-align:center;white-space:nowrap}
-td.qr-cell{text-align:center}
+td.qr-cell{text-align:center;padding-left:2px;padding-right:2px}
 .op-stack{display:inline-flex;flex-direction:column;gap:8px;align-items:center;vertical-align:middle}
-.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:6px 6px;border-radius:6px;min-width:48px;max-width:100%}
+.row-btn{border:none;background:none;color:#c08a2e;font-weight:700;font-size:13px;cursor:pointer;padding:4px 5px;border-radius:6px;min-width:0;max-width:100%;white-space:normal;line-height:1.25} /* 窄列时文字自动换行，不撑破列宽 */
 .row-btn:hover{background:#f3ece1}
 .row-btn.del{color:#c62828;font-weight:400}
 .empty{padding:34px 0;text-align:center}
@@ -104,7 +108,7 @@ td.plate-cell{white-space:nowrap}
 .set-group{display:inline-flex;align-items:center;gap:6px}
 .dirty-badge{display:none;color:#b03a2e;font-size:13px;font-weight:600;white-space:nowrap}
 .dirty-badge.show{display:inline}
-.qr-thumb{display:inline-block;width:20px;height:20px;cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
+.qr-thumb{display:inline-block;width:100%;max-width:20px;height:auto;aspect-ratio:1/1; /* 电脑比例列内自适应（≤20px），手机媒体查询覆盖为固定20px */cursor:zoom-in;border:1px solid #e8e0d4;border-radius:6px;padding:0;image-rendering:pixelated}
 .qr-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 4px 18px rgba(58,48,36,.25);text-align:center}
 #qr-big{display:block;max-width:76vw;max-height:76vw}
 .qr-cap{margin-top:8px;font-size:14px;color:#6b5d4a}
@@ -191,7 +195,7 @@ td.plate-cell{white-space:nowrap}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="h-proj">项目名称</th><th class="h-org">单位名称</th><th>用户名</th><th>姓名</th><th>手机号</th><th>车牌号</th><th class="qr">二维码</th><th class="op">操作</th></tr></thead>
+        <thead><tr><th class="h-proj" data-col="proj">项目名称</th><th class="h-org" data-col="org">单位名称</th><th data-col="user">用户名</th><th data-col="name">姓名</th><th data-col="phone">手机号</th><th data-col="plate">车牌号</th><th class="qr" data-col="qr">二维码</th><th class="op" data-col="op">操作</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
       <div id="empty-tip" class="muted empty hidden">暂无用户</div>
@@ -777,6 +781,11 @@ function autoLogin(){
 
 // ---------- 用户表格（筛选级联 + 分页20 + 列显隐） ----------
 var filterProj='', filterOrg='', pageNo=1, PAGE_SIZE=20;
+var cellsRatio=[
+  {key:'proj', ratio:20}, {key:'org', ratio:20}, {key:'user', ratio:10},
+  {key:'name', ratio:8}, {key:'phone', ratio:11}, {key:'plate', ratio:8},
+  {key:'qr', ratio:3}, {key:'op', ratio:5}
+];
 function filteredList(){
   var q=$('search-box').value.trim().toLowerCase();
   return state.users.filter(function(r){
@@ -785,6 +794,10 @@ function filteredList(){
     if(!q) return true;
     return ((r.proj||'')+' '+(r.org||'')+' '+r.u+' '+(r.n||'')+' '+(r.phone||'')+' '+(r.p||'')).toLowerCase().indexOf(q)>=0;
   });
+}
+function syncNarrowClass(){
+  var n=window.matchMedia('(max-width:768px)').matches;
+  if(n) document.body.classList.add('narrow'); else document.body.classList.remove('narrow');
 }
 function refreshFilterSel(){
   var sp=$('sel-proj'), so=$('sel-org');
@@ -821,15 +834,28 @@ function renderTable(){
   var hideProj=!!filterProj, hideOrg=!!filterOrg;
   document.querySelector('th.h-proj').classList.toggle('hidden', hideProj);
   document.querySelector('th.h-org').classList.toggle('hidden', hideOrg);
+  // 比例分宽：文字列按断行字符数比例(20:20:10:8:11:8)分配剩余宽度；二维码/操作列固定像素；
+  // table-layout:fixed 下隐藏列不参与分配，剩余可见列自动归一化到 100%
+  var heads=document.querySelectorAll('thead th');
+  var ratioSum=0;
+  cellsRatio.forEach(function(c){ if(!c.hide) ratioSum+=c.ratio; });
+  var narrow=document.body.classList.contains('narrow');
+  var narrowPx={proj:'130px',org:'130px',user:'65px',name:'52px',phone:'72px',plate:'52px',qr:'34px',op:'60px'};
+  heads.forEach(function(th){
+    var key=th.getAttribute('data-col');
+    if(narrow){ th.style.width=narrowPx[key]||''; return; } // 手机竖屏：写死列宽（px 按断行字符数换算），列宽和超出容器形成左右滑动
+    var c=cellsRatio.filter(function(x){ return x.key===key; })[0];
+    th.style.width=c&&ratioSum ? (c.ratio/ratioSum*100).toFixed(3)+'%' : '';
+  });
   slice.forEach(function(r){
     var tr=document.createElement('tr');
     var cells=[
-      {v:r.proj||'', w:'w-proj', hide:hideProj},
-      {v:r.org||'',  w:'w-org',  hide:hideOrg},
-      {v:r.u||'',    w:'w-user'},
-      {v:r.n||'',    w:'w-name'},
-      {v:r.phone||'',w:'w-phone'},
-      {v:r.p||'',    w:'w-plate'}
+      {v:r.proj||'', w:'w-proj', hide:hideProj, ratio:20},
+      {v:r.org||'',  w:'w-org',  hide:hideOrg,  ratio:20},
+      {v:r.u||'',    w:'w-user',  ratio:10},
+      {v:r.n||'',    w:'w-name',  ratio:8},
+      {v:r.phone||'',w:'w-phone', ratio:11},
+      {v:r.p||'',    w:'w-plate', ratio:8}
     ];
     cells.forEach(function(c){
       var td=document.createElement('td');
@@ -873,12 +899,6 @@ function renderTable(){
   $('pg-prev').disabled=pageNo<=1;
   $('pg-next').disabled=pageNo>=pages;
   refreshFilterSel();
-  // 列宽三级策略：自适应优先；全表超宽时启用断行（按各列设定宽度）；仍放不下由 wrap 的 overflow-x 横滚兜底
-  var wrapEl=document.querySelector('.table-wrap'), tbl=document.querySelector('table');
-  if(wrapEl&&tbl){
-    wrapEl.classList.remove('wrap-mode');
-    if(tbl.scrollWidth>wrapEl.clientWidth+1) wrapEl.classList.add('wrap-mode');
-  }
 }
 
 // ---------- 添加 / 编辑用户 ----------
@@ -1164,6 +1184,7 @@ function boot(){
     $('login-err').textContent='数据文件损坏，请重新上传 shdgjy.html';
     return;
   }
+  syncNarrowClass(); // 手机竖屏判定（加 body.narrow 类驱动列宽/按钮样式）
   initConn(); // 拉取服务器最新数据（失败则离线模式，用内嵌快照）
   $('login-form').addEventListener('submit', function(e){ e.preventDefault(); doLogin(); });
   // 用户名 × 一键清空（输入框内右侧）
@@ -1197,6 +1218,10 @@ function boot(){
   });
   $('pg-prev').addEventListener('click', function(){ if(pageNo>1){ pageNo--; renderTable(); } });
   $('pg-next').addEventListener('click', function(){ pageNo++; renderTable(); });
+  window.addEventListener('resize', function(){
+    syncNarrowClass();
+    if(session&&session.role==='admin') renderTable();
+  });
   $('btn-add').addEventListener('click', openAdd);
   $('btn-edit-ok').addEventListener('click', applyEdit);
   $('btn-import').addEventListener('click', function(){

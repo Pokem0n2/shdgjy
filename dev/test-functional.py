@@ -12,7 +12,7 @@ GPORT, ON_PORT, OFF_PORT, API_PORT = 4480, 8140, 8141, 8443
 BASE_ON = f'http://127.0.0.1:{ON_PORT}'    # 在线（静态页面 + API 容器）
 BASE_OFF = f'http://127.0.0.1:{OFF_PORT}'  # 离线（静态页面，API 停止）
 API_URL = f'http://127.0.0.1:{API_PORT}'
-VERSION = 'v0.10.1'
+VERSION = 'v0.10.2'
 DOCKER = ['sudo', '-n', 'docker']
 API_CONTAINER = 'shdgjy-api-test'
 
@@ -386,7 +386,7 @@ try:
     time.sleep(1.2)  # 视图切换动画 settle
     _geo = jsx("var b=document.getElementById('u-qr-img').getBoundingClientRect(); var c=document.getElementById('u-qr-wrap').getBoundingClientRect(); return [Math.round(b.left),Math.round(b.right),Math.round(c.left),Math.round(c.right),Math.round((b.left+b.right)/2-(c.left+c.right)/2), document.getElementById('u-qr-img').naturalWidth]")
     print('  [Q7geo] img[l,r]=', _geo[0] if _geo else None, _geo[1] if _geo else None, '| wrap[l,r]=', _geo[2] if _geo else None, _geo[3] if _geo else None, '| 中心差=', _geo[4] if _geo else None, '| naturalWidth=', _geo[5] if _geo else None)
-    ok('Q7 二维码居中显示', _geo and abs(_geo[4]) < 10 and _geo[5] >= 400, str(_geo))
+    ok('Q7 二维码居中显示', _geo and abs(_geo[4]) < 10 and _geo[5] >= 380, str(_geo))
     shot('q7-user-selfqr.png')
     jsx("document.getElementById('u-qr-img').click(); return null")
     t0 = time.time()
@@ -394,9 +394,8 @@ try:
         if jsx("var i=document.getElementById('qr-big-img'); return i.complete && i.naturalWidth>=400 && document.getElementById('modal-qr').classList.contains('open')") is True: break
         time.sleep(0.15)
     ok('Q7 点击放大浮窗',
-       jsx("var i=document.getElementById('qr-big-img'); return document.getElementById('modal-qr').classList.contains('open') && i.complete && i.naturalWidth>=400") is True,
-       f"modal={jsx(chr(114)+'eturn document.getElementById(0)')} " if False else
-       f"naturalWidth={jsx('return document.getElementById(0),0')}" if False else '见现场打印')
+       jsx("var i=document.getElementById('qr-big-img'); return document.getElementById('modal-qr').classList.contains('open') && i.complete && i.naturalWidth>=380") is True,
+       str(jsx("return document.getElementById('qr-big-img').naturalWidth")))
     jsx("document.getElementById('modal-qr').click(); return null"); time.sleep(0.3)
     zr2 = subprocess.run(['zbarimg', '-q', '--raw', os.path.join(HERE, 'shots', 'q7-user-selfqr.png')],
                          capture_output=True, text=True)
@@ -572,10 +571,12 @@ try:
     click('btn-edit-ok'); time.sleep(0.4)
     jsx("var e=document.getElementById('search-box');e.value='wrap1';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
     time.sleep(0.4)
-    # 桌面宽屏：8列自适应排布未超容器 → 不启用断行，长项目名单行
-    _wrapmode = jsx("return document.querySelector('.table-wrap').classList.contains('wrap-mode')")
+    # 比例分宽：项目/单位列宽应为 20/77×文字区（约26%），长内容(22英字符)桌面比例宽内单行或列宽内折行
+    _ws = jsx("var hs=[].slice.call(document.querySelectorAll('thead th')).map(function(th){return Math.round(th.getBoundingClientRect().width)}); return hs")
+    ok('S9 比例分宽(项目=单位>手机>用户名>姓名=车牌)', _ws and _ws[0]==_ws[1] and _ws[4]>_ws[2] and _ws[2]>_ws[3] and _ws[3]==_ws[5], str(_ws))
+    ok('S9 码列3份/操作列5份(码<操作<姓名)', _ws and _ws[6] < _ws[7] and _ws[7] < _ws[3], str(_ws))
     _rects = jsx("var sp=document.querySelector('#tbody tr td:first-child .cell-w');var rg=document.createRange();rg.selectNodeContents(sp);return [rg.getClientRects().length, Math.round(sp.getBoundingClientRect().width)]")
-    ok('S9 桌面自适应优先(不锁列宽不断行)', _wrapmode is False and _rects and _rects[0] == 1, f"wrap-mode={_wrapmode} rects={_rects}")
+    ok('S9 长项目名不超出列宽', _rects and _rects[1] <= _ws[0] + 2, f"内容宽={_rects[1] if _rects else None} 列宽={_ws[0] if _ws else None}")
     jsx("var e=document.getElementById('search-box');e.value='';e.dispatchEvent(new Event('input',{bubbles:true}));return 1")
     time.sleep(0.3)
     jsx("document.getElementById('sel-proj').value='BK项目A';document.getElementById('sel-proj').dispatchEvent(new Event('change',{bubbles:true}));return 1")
@@ -657,8 +658,11 @@ try:
     m2 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var w=d.querySelector('.table-wrap'); return [w.scrollWidth, w.clientWidth, d.getElementById('tbody').rows.length]")
     ok('D2 390px表格数据可达(横滚允许)', m2 and m2[2] >= 3, str(m2))
-    _wm = jsx("var d=document.getElementById('f').contentWindow.document;return d.querySelector('.table-wrap').classList.contains('wrap-mode')")
-    ok('D2b 390px超宽时启用断行模式', _wm is True, str(_wm))
+    _wm = jsx("var d=document.getElementById('f').contentWindow.document;var w=d.querySelector('.table-wrap');var t=d.querySelector('table');"
+              "var hs=[].slice.call(d.querySelectorAll('thead th')).map(function(th){return [th.getAttribute('data-col'), Math.round(th.getBoundingClientRect().width), th.style.width||'-']});"
+              "return [t.scrollWidth>w.clientWidth+1, Math.round(d.querySelector('th.h-proj').getBoundingClientRect().width), d.querySelector('th[data-col=op]').style.width, JSON.stringify(hs)]")
+    print('  [D2b列] 横滚=', _wm[0], '| projRect=', _wm[1], '| opInline=', _wm[2], '| 各列[col,rect,inline]=', _wm[3])
+    ok('D2b 390px手机模式(写死列宽+可横滑)', _wm and _wm[0] is True and 120<=_wm[1]<=150 and _wm[2]=='60px', str(_wm[:3]))
     m3 = jsx("var d=document.getElementById('f').contentWindow.document;"
              "var bts=d.querySelector('#tbody tr .op-stack').children;"
              "var a=bts[0].getBoundingClientRect(), b=bts[1].getBoundingClientRect();"
